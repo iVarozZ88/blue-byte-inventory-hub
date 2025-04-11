@@ -13,7 +13,7 @@ import {
   Printer, 
   ScanLine,
   PlusCircle, 
-  Globe,
+  Trash2,
   Cable,
   Users
 } from 'lucide-react';
@@ -29,7 +29,12 @@ const Sidebar = () => {
     <div className="bg-sidebar fixed left-0 top-0 h-full w-64 text-white overflow-y-auto">
       <div className="p-5 flex items-center justify-between">
         <h1 className="text-xl font-bold">Inventario Tech</h1>
-        <Globe className="h-5 w-5" />
+        <Link to="/trash">
+          <Trash2 
+            className={`h-5 w-5 ${isActive('/trash') ? 'text-blue-300' : 'text-white hover:text-blue-300'} transition-colors`} 
+            aria-label="Papelera"
+          />
+        </Link>
       </div>
       
       <div className="px-3 py-2">

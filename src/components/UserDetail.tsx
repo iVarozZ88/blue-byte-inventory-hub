@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Asset, getAssetsByUser } from '@/lib/db';
@@ -26,8 +25,18 @@ import {
   HelpCircle,
   UserCircle,
   ArrowLeft,
-  Cable
+  Cable,
+  Download
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from '@/components/ui/use-toast';
+import { exportToPDF } from '@/lib/exportPDF';
+import { exportToExcel } from '@/lib/exportExcel';
 
 const getAssetIcon = (type: string) => {
   switch (type) {
@@ -74,6 +83,33 @@ const UserDetail = () => {
     }
   }, [username]);
 
+  const handleExport = (format: 'pdf' | 'excel') => {
+    try {
+      if (!username) return;
+      
+      const decodedUsername = decodeURIComponent(username);
+      const title = `Dispositivos de ${decodedUsername}`;
+      
+      if (format === 'pdf') {
+        exportToPDF(assets, title);
+      } else {
+        exportToExcel(assets, title);
+      }
+      
+      toast({
+        title: "Exportación exitosa",
+        description: `Se ha generado el archivo ${format.toUpperCase()} correctamente.`,
+      });
+    } catch (error) {
+      console.error('Error exporting assets:', error);
+      toast({
+        title: "Error en la exportación",
+        description: "Hubo un problema al generar el archivo.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return <div className="p-8 text-center">Cargando datos del usuario...</div>;
   }
@@ -98,6 +134,23 @@ const UserDetail = () => {
             </p>
           </div>
         </div>
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="flex items-center gap-2">
+              <Download size={16} />
+              <span>Exportar</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleExport('pdf')}>
+              Exportar como PDF
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleExport('excel')}>
+              Exportar como Excel
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </CardHeader>
       <CardContent className="space-y-6">
         {assets.length === 0 ? (

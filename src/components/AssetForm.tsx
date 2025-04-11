@@ -30,6 +30,7 @@ const assetTypes: { value: AssetType; label: string }[] = [
   { value: 'mobile', label: 'Mobile Phone' },
   { value: 'scanner', label: 'Scanner' },
   { value: 'printer', label: 'Printer' },
+  { value: 'cable', label: 'Cable' },
   { value: 'other', label: 'Other' },
 ];
 

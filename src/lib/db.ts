@@ -1,4 +1,3 @@
-
 import { toast } from "@/components/ui/use-toast";
 
 // Define asset types
@@ -77,6 +76,27 @@ export const saveAssets = (assets: Asset[]): void => {
   }
 };
 
+// Get all trashed assets from localStorage
+export const getTrashedAssets = (): Asset[] => {
+  try {
+    const trashedAssets = localStorage.getItem('techInventoryTrashedAssets');
+    if (!trashedAssets) return [];
+    return JSON.parse(trashedAssets);
+  } catch (error) {
+    console.error('Error loading trashed assets from localStorage:', error);
+    return [];
+  }
+};
+
+// Save trashed assets to localStorage
+export const saveTrashedAssets = (assets: Asset[]): void => {
+  try {
+    localStorage.setItem('techInventoryTrashedAssets', JSON.stringify(assets));
+  } catch (error) {
+    console.error('Error saving trashed assets to localStorage:', error);
+  }
+};
+
 // Add a new asset
 export const addAsset = (asset: Omit<Asset, 'id' | 'lastUpdated'>): Asset => {
   const newAsset: Asset = {
@@ -107,11 +127,57 @@ export const updateAsset = (asset: Asset): Asset => {
   return updatedAsset;
 };
 
-// Delete an asset
+// Delete an asset (move to trash)
 export const deleteAsset = (id: string): void => {
   const assets = getAssets();
-  const updatedAssets = assets.filter(a => a.id !== id);
-  saveAssets(updatedAssets);
+  const assetToTrash = assets.find(a => a.id === id);
+  
+  if (assetToTrash) {
+    // Add to trash
+    const trashedAssets = getTrashedAssets();
+    saveTrashedAssets([...trashedAssets, assetToTrash]);
+    
+    // Remove from active assets
+    const updatedAssets = assets.filter(a => a.id !== id);
+    saveAssets(updatedAssets);
+    
+    toast({
+      title: "Activo eliminado",
+      description: `${assetToTrash.name} ha sido movido a la papelera.`,
+    });
+  }
+};
+
+// Permanently delete an asset from trash
+export const permanentlyDeleteAsset = (id: string): void => {
+  const trashedAssets = getTrashedAssets();
+  const updatedTrashedAssets = trashedAssets.filter(a => a.id !== id);
+  saveTrashedAssets(updatedTrashedAssets);
+};
+
+// Restore an asset from trash
+export const restoreAsset = (id: string): void => {
+  const trashedAssets = getTrashedAssets();
+  const assetToRestore = trashedAssets.find(a => a.id === id);
+  
+  if (assetToRestore) {
+    // Add back to active assets
+    const assets = getAssets();
+    const updatedAsset = {
+      ...assetToRestore,
+      lastUpdated: formatDate(),
+    };
+    saveAssets([...assets, updatedAsset]);
+    
+    // Remove from trash
+    const updatedTrashedAssets = trashedAssets.filter(a => a.id !== id);
+    saveTrashedAssets(updatedTrashedAssets);
+    
+    toast({
+      title: "Activo restaurado",
+      description: `${assetToRestore.name} ha sido restaurado del inventario.`,
+    });
+  }
 };
 
 // Get asset statistics

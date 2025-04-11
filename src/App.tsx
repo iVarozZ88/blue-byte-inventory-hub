@@ -13,6 +13,7 @@ import NewAssetPage from "./pages/NewAssetPage";
 import EditAssetPage from "./pages/EditAssetPage";
 import UsersListPage from "./pages/UsersListPage";
 import UserDetailPage from "./pages/UserDetailPage";
+import TrashPage from "./pages/TrashPage";
 import { useEffect } from "react";
 import { seedInitialData } from "./lib/db";
 
@@ -40,6 +41,7 @@ const App = () => {
               <Route path="assets/id/:id/edit" element={<EditAssetPage />} />
               <Route path="users" element={<UsersListPage />} />
               <Route path="users/:username" element={<UserDetailPage />} />
+              <Route path="trash" element={<TrashPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
