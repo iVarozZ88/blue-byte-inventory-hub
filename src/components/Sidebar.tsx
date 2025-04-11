@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Computer, 
@@ -17,6 +17,12 @@ import {
 } from 'lucide-react';
 
 const Sidebar = () => {
+  const location = useLocation();
+  
+  const isActive = (path: string) => {
+    return location.pathname === path || location.pathname.startsWith(path + '/');
+  };
+
   return (
     <div className="bg-sidebar fixed left-0 top-0 h-full w-64 text-white overflow-y-auto">
       <div className="p-5 flex items-center justify-between">
@@ -37,9 +43,7 @@ const Sidebar = () => {
       <nav className="mt-5">
         <Link 
           to="/" 
-          className={({ isActive }) => 
-            isActive ? "sidebar-item active" : "sidebar-item"
-          }
+          className={isActive('/') ? "sidebar-item active" : "sidebar-item"}
         >
           <LayoutDashboard size={18} />
           <span>Panel Principal</span>
@@ -47,9 +51,7 @@ const Sidebar = () => {
         
         <Link 
           to="/assets/computer" 
-          className={({ isActive }) => 
-            isActive ? "sidebar-item active" : "sidebar-item"
-          }
+          className={isActive('/assets/computer') ? "sidebar-item active" : "sidebar-item"}
         >
           <Computer size={18} />
           <span>Computadoras</span>
@@ -57,9 +59,7 @@ const Sidebar = () => {
         
         <Link 
           to="/assets/laptop"
-          className={({ isActive }) => 
-            isActive ? "sidebar-item active" : "sidebar-item"
-          }
+          className={isActive('/assets/laptop') ? "sidebar-item active" : "sidebar-item"}
         >
           <Laptop size={18} />
           <span>Portátiles</span>
@@ -67,9 +67,7 @@ const Sidebar = () => {
         
         <Link 
           to="/assets/monitor"
-          className={({ isActive }) => 
-            isActive ? "sidebar-item active" : "sidebar-item"
-          }
+          className={isActive('/assets/monitor') ? "sidebar-item active" : "sidebar-item"}
         >
           <Monitor size={18} />
           <span>Monitores</span>
@@ -77,9 +75,7 @@ const Sidebar = () => {
         
         <Link 
           to="/assets/mouse"
-          className={({ isActive }) => 
-            isActive ? "sidebar-item active" : "sidebar-item"
-          }
+          className={isActive('/assets/mouse') ? "sidebar-item active" : "sidebar-item"}
         >
           <Mouse size={18} />
           <span>Ratones</span>
@@ -87,9 +83,7 @@ const Sidebar = () => {
         
         <Link 
           to="/assets/keyboard"
-          className={({ isActive }) => 
-            isActive ? "sidebar-item active" : "sidebar-item"
-          }
+          className={isActive('/assets/keyboard') ? "sidebar-item active" : "sidebar-item"}
         >
           <Keyboard size={18} />
           <span>Teclados</span>
@@ -97,9 +91,7 @@ const Sidebar = () => {
         
         <Link 
           to="/assets/telephone"
-          className={({ isActive }) => 
-            isActive ? "sidebar-item active" : "sidebar-item"
-          }
+          className={isActive('/assets/telephone') ? "sidebar-item active" : "sidebar-item"}
         >
           <Phone size={18} />
           <span>Teléfonos</span>
@@ -107,9 +99,7 @@ const Sidebar = () => {
         
         <Link 
           to="/assets/mobile"
-          className={({ isActive }) => 
-            isActive ? "sidebar-item active" : "sidebar-item"
-          }
+          className={isActive('/assets/mobile') ? "sidebar-item active" : "sidebar-item"}
         >
           <Smartphone size={18} />
           <span>Móviles</span>
@@ -117,9 +107,7 @@ const Sidebar = () => {
         
         <Link 
           to="/assets/scanner"
-          className={({ isActive }) => 
-            isActive ? "sidebar-item active" : "sidebar-item"
-          }
+          className={isActive('/assets/scanner') ? "sidebar-item active" : "sidebar-item"}
         >
           <ScanLine size={18} />
           <span>Escáneres</span>
@@ -127,9 +115,7 @@ const Sidebar = () => {
         
         <Link 
           to="/assets/printer"
-          className={({ isActive }) => 
-            isActive ? "sidebar-item active" : "sidebar-item"
-          }
+          className={isActive('/assets/printer') ? "sidebar-item active" : "sidebar-item"}
         >
           <Printer size={18} />
           <span>Impresoras</span>
