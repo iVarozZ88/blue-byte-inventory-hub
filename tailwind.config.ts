@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,7 +62,13 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+                // Tech Inventory custom colors
+                'tech-blue': {
+                    DEFAULT: '#004080',
+                    dark: '#003366',
+                    light: '#0066cc'
+                },
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
