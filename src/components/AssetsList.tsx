@@ -36,16 +36,16 @@ import {
 } from 'lucide-react';
 
 const typeLabels: Record<AssetType, string> = {
-  computer: 'Computers',
-  laptop: 'Laptops',
-  monitor: 'Monitors',
-  mouse: 'Mice',
-  keyboard: 'Keyboards',
-  telephone: 'Telephones',
-  mobile: 'Mobile Phones',
-  scanner: 'Scanners',
-  printer: 'Printers',
-  other: 'Other Devices'
+  computer: 'Computadoras',
+  laptop: 'Portátiles',
+  monitor: 'Monitores',
+  mouse: 'Ratones',
+  keyboard: 'Teclados',
+  telephone: 'Teléfonos',
+  mobile: 'Móviles',
+  scanner: 'Escáneres',
+  printer: 'Impresoras',
+  other: 'Otros Dispositivos'
 };
 
 const getAssetIcon = (type: AssetType) => {
@@ -119,13 +119,13 @@ const AssetsList = () => {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h1 className="text-2xl font-bold">
-          {type ? typeLabels[type as AssetType] : 'All Assets'}
+          {type ? typeLabels[type as AssetType] : 'Todos los Activos'}
         </h1>
         
         <Button asChild>
           <Link to="/assets/new" className="flex items-center gap-2">
             <PlusCircle size={16} />
-            <span>Add New Asset</span>
+            <span>Agregar Activo</span>
           </Link>
         </Button>
       </div>
@@ -134,7 +134,7 @@ const AssetsList = () => {
         <div className="relative flex-grow">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
           <Input
-            placeholder="Search assets..."
+            placeholder="Buscar activos..."
             value={searchTerm}
             onChange={handleSearch}
             className="pl-10"
@@ -142,14 +142,14 @@ const AssetsList = () => {
         </div>
         <Select value={statusFilter} onValueChange={handleStatusFilter}>
           <SelectTrigger className="w-full md:w-[180px]">
-            <SelectValue placeholder="Filter by status" />
+            <SelectValue placeholder="Filtrar por estado" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="available">Available</SelectItem>
-            <SelectItem value="assigned">Assigned</SelectItem>
-            <SelectItem value="maintenance">Maintenance</SelectItem>
-            <SelectItem value="retired">Retired</SelectItem>
+            <SelectItem value="all">Todos los Estados</SelectItem>
+            <SelectItem value="available">Disponible</SelectItem>
+            <SelectItem value="assigned">Asignado</SelectItem>
+            <SelectItem value="maintenance">Mantenimiento</SelectItem>
+            <SelectItem value="retired">Retirado</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -158,19 +158,19 @@ const AssetsList = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              {!type && <TableHead>Type</TableHead>}
-              <TableHead>Model</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Assigned To</TableHead>
-              <TableHead>Last Updated</TableHead>
+              <TableHead>Nombre</TableHead>
+              {!type && <TableHead>Tipo</TableHead>}
+              <TableHead>Modelo</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead>Asignado A</TableHead>
+              <TableHead>Última Actualización</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredAssets.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={type ? 5 : 6} className="text-center py-8">
-                  No assets found
+                  No se encontraron activos
                 </TableCell>
               </TableRow>
             ) : (
@@ -185,7 +185,7 @@ const AssetsList = () => {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {getAssetIcon(asset.type)}
-                        <span className="capitalize">{asset.type}</span>
+                        <span className="capitalize">{typeLabels[asset.type]}</span>
                       </div>
                     </TableCell>
                   )}
@@ -200,10 +200,10 @@ const AssetsList = () => {
                         ${asset.status === 'retired' && 'bg-gray-50 text-gray-600 border-gray-200'}
                       `}
                     >
-                      {asset.status === 'available' && 'Available'}
-                      {asset.status === 'assigned' && 'Assigned'}
-                      {asset.status === 'maintenance' && 'Maintenance'}
-                      {asset.status === 'retired' && 'Retired'}
+                      {asset.status === 'available' && 'Disponible'}
+                      {asset.status === 'assigned' && 'Asignado'}
+                      {asset.status === 'maintenance' && 'Mantenimiento'}
+                      {asset.status === 'retired' && 'Retirado'}
                     </Badge>
                   </TableCell>
                   <TableCell>{asset.assignedTo || '-'}</TableCell>
