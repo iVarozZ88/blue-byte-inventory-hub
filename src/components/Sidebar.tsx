@@ -13,7 +13,9 @@ import {
   Printer, 
   ScanLine,
   PlusCircle, 
-  Globe
+  Globe,
+  Cable,
+  Users
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -120,6 +122,24 @@ const Sidebar = () => {
           <Printer size={18} />
           <span>Impresoras</span>
         </Link>
+
+        <Link 
+          to="/assets/cable"
+          className={isActive('/assets/cable') ? "sidebar-item active" : "sidebar-item"}
+        >
+          <Cable size={18} />
+          <span>Cables</span>
+        </Link>
+        
+        <div className="mt-8 border-t border-gray-700 pt-6">
+          <Link 
+            to="/users"
+            className={isActive('/users') ? "sidebar-item active" : "sidebar-item"}
+          >
+            <Users size={18} />
+            <span>Usuarios</span>
+          </Link>
+        </div>
       </nav>
     </div>
   );

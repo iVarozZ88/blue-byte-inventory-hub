@@ -32,8 +32,19 @@ import {
   ScanLine,
   HelpCircle,
   Search,
-  PlusCircle
+  PlusCircle,
+  Cable,
+  Download
 } from 'lucide-react';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { toast } from '@/components/ui/use-toast';
+import { exportToPDF } from '@/lib/exportPDF';
+import { exportToExcel } from '@/lib/exportExcel';
 
 const typeLabels: Record<AssetType, string> = {
   computer: 'Computadoras',
@@ -45,6 +56,7 @@ const typeLabels: Record<AssetType, string> = {
   mobile: 'Móviles',
   scanner: 'Escáneres',
   printer: 'Impresoras',
+  cable: 'Cables',
   other: 'Otros Dispositivos'
 };
 
@@ -59,6 +71,7 @@ const getAssetIcon = (type: AssetType) => {
     case 'mobile': return <Smartphone size={16} />;
     case 'scanner': return <ScanLine size={16} />;
     case 'printer': return <Printer size={16} />;
+    case 'cable': return <Cable size={16} />;
     default: return <HelpCircle size={16} />;
   }
 };
@@ -115,6 +128,30 @@ const AssetsList = () => {
     applyFilters(assets, searchTerm, value);
   };
 
+  const handleExport = (format: 'pdf' | 'excel') => {
+    try {
+      const title = type ? typeLabels[type as AssetType] : 'Todos los Activos';
+      
+      if (format === 'pdf') {
+        exportToPDF(filteredAssets, title);
+      } else {
+        exportToExcel(filteredAssets, title);
+      }
+      
+      toast({
+        title: "Exportación exitosa",
+        description: `Se ha generado el archivo ${format.toUpperCase()} correctamente.`,
+      });
+    } catch (error) {
+      console.error('Error exporting assets:', error);
+      toast({
+        title: "Error en la exportación",
+        description: "Hubo un problema al generar el archivo.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -122,12 +159,31 @@ const AssetsList = () => {
           {type ? typeLabels[type as AssetType] : 'Todos los Activos'}
         </h1>
         
-        <Button asChild>
-          <Link to="/assets/new" className="flex items-center gap-2">
-            <PlusCircle size={16} />
-            <span>Agregar Activo</span>
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-2">
+                <Download size={16} />
+                <span>Exportar</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleExport('pdf')}>
+                Exportar como PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleExport('excel')}>
+                Exportar como Excel
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          
+          <Button asChild>
+            <Link to="/assets/new" className="flex items-center gap-2">
+              <PlusCircle size={16} />
+              <span>Agregar Activo</span>
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col md:flex-row gap-4">

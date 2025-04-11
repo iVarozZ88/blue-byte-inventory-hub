@@ -12,6 +12,7 @@ export type AssetType =
   | 'mobile'
   | 'scanner'
   | 'printer'
+  | 'cable'
   | 'other';
 
 // Define asset status
@@ -54,8 +55,8 @@ export const getAssets = (): Asset[] => {
   } catch (error) {
     console.error('Error loading assets from localStorage:', error);
     toast({
-      title: "Error loading inventory",
-      description: "There was a problem loading your inventory data.",
+      title: "Error al cargar inventario",
+      description: "Hubo un problema al cargar los datos del inventario.",
       variant: "destructive",
     });
     return [];
@@ -69,8 +70,8 @@ export const saveAssets = (assets: Asset[]): void => {
   } catch (error) {
     console.error('Error saving assets to localStorage:', error);
     toast({
-      title: "Error saving inventory",
-      description: "There was a problem saving your inventory data.",
+      title: "Error al guardar inventario",
+      description: "Hubo un problema al guardar los datos del inventario.",
       variant: "destructive",
     });
   }
@@ -136,6 +137,7 @@ export const getAssetStatistics = () => {
     mobile: 0,
     scanner: 0,
     printer: 0,
+    cable: 0,
     other: 0,
   };
   
@@ -157,6 +159,31 @@ export const getAssetStatistics = () => {
   };
 };
 
+// Get all unique users with assigned assets
+export const getUsers = (): string[] => {
+  const assets = getAssets();
+  
+  // Get all users that have assets assigned
+  const usersSet = new Set<string>();
+  
+  assets.forEach(asset => {
+    if (asset.assignedTo && asset.assignedTo.trim() !== '') {
+      usersSet.add(asset.assignedTo.trim());
+    }
+  });
+  
+  return Array.from(usersSet).sort();
+};
+
+// Get all assets assigned to a specific user
+export const getAssetsByUser = (username: string): Asset[] => {
+  const assets = getAssets();
+  
+  return assets.filter(asset => 
+    asset.assignedTo === username && asset.status === 'assigned'
+  );
+};
+
 // Function to seed initial data
 export const seedInitialData = () => {
   // Only seed if no data exists
@@ -169,8 +196,8 @@ export const seedInitialData = () => {
         serialNumber: "SN12345678",
         purchaseDate: "2022-06-15",
         status: "assigned",
-        assignedTo: "John Doe",
-        notes: "Developer laptop"
+        assignedTo: "Juan Pérez",
+        notes: "Laptop para desarrollador"
       },
       {
         name: "HP EliteBook",
@@ -179,7 +206,7 @@ export const seedInitialData = () => {
         serialNumber: "HP987654321",
         purchaseDate: "2022-03-10",
         status: "available",
-        notes: "Spare laptop"
+        notes: "Laptop de respaldo"
       },
       {
         name: "Dell UltraSharp",
@@ -188,8 +215,8 @@ export const seedInitialData = () => {
         serialNumber: "MON123456",
         purchaseDate: "2022-06-15",
         status: "assigned",
-        assignedTo: "Jane Smith",
-        notes: "27-inch 4K monitor"
+        assignedTo: "María López",
+        notes: "Monitor 4K de 27 pulgadas"
       },
       {
         name: "Logitech MX Master",
@@ -198,8 +225,8 @@ export const seedInitialData = () => {
         serialNumber: "LG456789",
         purchaseDate: "2022-01-20",
         status: "assigned",
-        assignedTo: "John Doe",
-        notes: "Wireless mouse"
+        assignedTo: "Juan Pérez",
+        notes: "Mouse inalámbrico"
       },
       {
         name: "Apple Magic Keyboard",
@@ -208,7 +235,7 @@ export const seedInitialData = () => {
         serialNumber: "APP789012",
         purchaseDate: "2022-02-15",
         status: "available",
-        notes: "Wireless keyboard"
+        notes: "Teclado inalámbrico"
       },
       {
         name: "Cisco IP Phone",
@@ -217,8 +244,8 @@ export const seedInitialData = () => {
         serialNumber: "CIS345678",
         purchaseDate: "2021-11-05",
         status: "assigned",
-        assignedTo: "Reception Desk",
-        notes: "Reception phone"
+        assignedTo: "Recepción",
+        notes: "Teléfono de recepción"
       },
       {
         name: "iPhone 13",
@@ -227,8 +254,8 @@ export const seedInitialData = () => {
         serialNumber: "IPH234567",
         purchaseDate: "2022-09-25",
         status: "assigned",
-        assignedTo: "Jane Smith",
-        notes: "Company phone"
+        assignedTo: "María López",
+        notes: "Teléfono de empresa"
       },
       {
         name: "Fujitsu ScanSnap",
@@ -237,7 +264,7 @@ export const seedInitialData = () => {
         serialNumber: "FUJ567890",
         purchaseDate: "2022-04-18",
         status: "available",
-        notes: "Document scanner"
+        notes: "Escáner de documentos"
       },
       {
         name: "HP LaserJet",
@@ -246,7 +273,7 @@ export const seedInitialData = () => {
         serialNumber: "HPP123456",
         purchaseDate: "2022-05-12",
         status: "maintenance",
-        notes: "Needs toner replacement"
+        notes: "Necesita reemplazo de tóner"
       },
       {
         name: "Dell Optiplex",
@@ -255,8 +282,8 @@ export const seedInitialData = () => {
         serialNumber: "OPT123456",
         purchaseDate: "2021-12-10",
         status: "assigned",
-        assignedTo: "Conference Room",
-        notes: "Meeting room PC"
+        assignedTo: "Sala de Conferencias",
+        notes: "PC para sala de reuniones"
       },
       {
         name: "Dell XPS Desktop",
@@ -265,7 +292,7 @@ export const seedInitialData = () => {
         serialNumber: "XPS987654",
         purchaseDate: "2022-08-05",
         status: "retired",
-        notes: "Outdated hardware"
+        notes: "Hardware obsoleto"
       },
       {
         name: "LG UltraWide",
@@ -274,8 +301,37 @@ export const seedInitialData = () => {
         serialNumber: "LG345678",
         purchaseDate: "2022-07-14",
         status: "assigned",
-        assignedTo: "Design Team",
-        notes: "Ultrawide monitor for designers"
+        assignedTo: "Equipo de Diseño",
+        notes: "Monitor ultrawide para diseñadores"
+      },
+      {
+        name: "Cable HDMI",
+        type: "cable",
+        model: "HDMI 2.0",
+        serialNumber: "HDM123456",
+        purchaseDate: "2022-01-15",
+        status: "assigned",
+        assignedTo: "Juan Pérez",
+        notes: "Cable para conectar laptop a monitor"
+      },
+      {
+        name: "Cable USB-C",
+        type: "cable",
+        model: "USB-C a USB-C",
+        serialNumber: "USBC789012",
+        purchaseDate: "2022-03-20",
+        status: "assigned",
+        assignedTo: "María López",
+        notes: "Cable de carga rápida"
+      },
+      {
+        name: "Cable Ethernet",
+        type: "cable",
+        model: "Cat6",
+        serialNumber: "ETH567890",
+        purchaseDate: "2022-02-10",
+        status: "available",
+        notes: "Cable de 3 metros"
       }
     ];
 
