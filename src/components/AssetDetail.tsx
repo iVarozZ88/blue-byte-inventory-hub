@@ -48,8 +48,8 @@ const AssetDetail = () => {
         setAsset(foundAsset);
       } else {
         toast({
-          title: "Asset not found",
-          description: "The requested asset could not be found.",
+          title: "Activo no encontrado",
+          description: "El activo solicitado no se pudo encontrar.",
           variant: "destructive",
         });
         navigate('/');
@@ -63,16 +63,16 @@ const AssetDetail = () => {
       if (id) {
         deleteAsset(id);
         toast({
-          title: "Asset deleted",
-          description: "The asset has been removed from inventory.",
+          title: "Activo eliminado",
+          description: "El activo ha sido eliminado del inventario.",
         });
         navigate('/');
       }
     } catch (error) {
       console.error('Error deleting asset:', error);
       toast({
-        title: "Error deleting asset",
-        description: "There was a problem deleting the asset.",
+        title: "Error al eliminar activo",
+        description: "Hubo un problema al eliminar el activo.",
         variant: "destructive",
       });
     }
@@ -100,22 +100,22 @@ const AssetDetail = () => {
     
     switch (asset.status) {
       case 'available':
-        return <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">Available</Badge>;
+        return <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">Disponible</Badge>;
       case 'assigned':
-        return <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">Assigned</Badge>;
+        return <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">Asignado</Badge>;
       case 'maintenance':
-        return <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200">Maintenance</Badge>;
+        return <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200">Mantenimiento</Badge>;
       case 'retired':
-        return <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200">Retired</Badge>;
+        return <Badge variant="outline" className="bg-gray-50 text-gray-600 border-gray-200">Retirado</Badge>;
     }
   };
 
   if (loading) {
-    return <div className="p-8 text-center">Loading asset information...</div>;
+    return <div className="p-8 text-center">Cargando información del activo...</div>;
   }
 
   if (!asset) {
-    return <div className="p-8 text-center">Asset not found</div>;
+    return <div className="p-8 text-center">Activo no encontrado</div>;
   }
 
   return (
@@ -137,32 +137,32 @@ const AssetDetail = () => {
       <CardContent className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Model</p>
-            <p className="font-medium">{asset.model || 'Not specified'}</p>
+            <p className="text-sm text-muted-foreground">Modelo</p>
+            <p className="font-medium">{asset.model || 'No especificado'}</p>
           </div>
           <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Serial Number</p>
-            <p className="font-medium">{asset.serialNumber || 'Not specified'}</p>
+            <p className="text-sm text-muted-foreground">Número de Serie</p>
+            <p className="font-medium">{asset.serialNumber || 'No especificado'}</p>
           </div>
           <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Purchase Date</p>
-            <p className="font-medium">{asset.purchaseDate || 'Not specified'}</p>
+            <p className="text-sm text-muted-foreground">Fecha de Compra</p>
+            <p className="font-medium">{asset.purchaseDate || 'No especificada'}</p>
           </div>
           <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Assigned To</p>
-            <p className="font-medium">{asset.assignedTo || 'Not assigned'}</p>
+            <p className="text-sm text-muted-foreground">Asignado a</p>
+            <p className="font-medium">{asset.assignedTo || 'No asignado'}</p>
           </div>
         </div>
         
         <div className="space-y-1">
-          <p className="text-sm text-muted-foreground">Notes</p>
+          <p className="text-sm text-muted-foreground">Notas</p>
           <div className="bg-muted p-3 rounded-md">
-            <p>{asset.notes || 'No notes'}</p>
+            <p>{asset.notes || 'Sin notas'}</p>
           </div>
         </div>
         
         <div className="space-y-1">
-          <p className="text-sm text-muted-foreground">Last Updated</p>
+          <p className="text-sm text-muted-foreground">Última Actualización</p>
           <p className="font-medium">{asset.lastUpdated}</p>
         </div>
       </CardContent>
@@ -171,16 +171,16 @@ const AssetDetail = () => {
           variant="outline"
           onClick={() => navigate(-1)}
         >
-          Back
+          Volver
         </Button>
         <div className="flex gap-2">
           <Button 
             variant="outline"
             className="flex items-center gap-2"
-            onClick={() => navigate(`/assets/${id}/edit`)}
+            onClick={() => navigate(`/assets/id/${id}/edit`)}
           >
             <Edit size={16} />
-            <span>Edit</span>
+            <span>Editar</span>
           </Button>
           
           <AlertDialog>
@@ -190,19 +190,19 @@ const AssetDetail = () => {
                 className="flex items-center gap-2"
               >
                 <Trash size={16} />
-                <span>Delete</span>
+                <span>Eliminar</span>
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Delete asset</AlertDialogTitle>
+                <AlertDialogTitle>Eliminar activo</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Are you sure you want to delete "{asset.name}"? This action cannot be undone.
+                  ¿Estás seguro de que quieres eliminar "{asset.name}"? Esta acción no se puede deshacer.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteAsset}>Delete</AlertDialogAction>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteAsset}>Eliminar</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

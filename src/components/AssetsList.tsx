@@ -177,7 +177,7 @@ const AssetsList = () => {
               filteredAssets.map((asset) => (
                 <TableRow key={asset.id}>
                   <TableCell className="font-medium">
-                    <Link to={`/assets/${asset.id}`} className="hover:underline">
+                    <Link to={`/assets/id/${asset.id}`} className="hover:underline">
                       {asset.name}
                     </Link>
                   </TableCell>

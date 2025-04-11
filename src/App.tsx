@@ -33,9 +33,9 @@ const App = () => {
               <Route index element={<Index />} />
               <Route path="assets" element={<AssetsListPage />} />
               <Route path="assets/new" element={<NewAssetPage />} />
-              <Route path="assets/:id" element={<AssetPage />} />
-              <Route path="assets/:id/edit" element={<EditAssetPage />} />
               <Route path="assets/:type" element={<AssetsListPage />} />
+              <Route path="assets/id/:id" element={<AssetPage />} />
+              <Route path="assets/id/:id/edit" element={<EditAssetPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
