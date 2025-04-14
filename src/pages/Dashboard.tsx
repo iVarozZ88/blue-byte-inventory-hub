@@ -34,6 +34,7 @@ const Dashboard = () => {
       scanner: 0,
       printer: 0,
       cable: 0,
+      license: 0,
       other: 0,
     },
     recentlyUpdated: [],
@@ -82,6 +83,7 @@ const Dashboard = () => {
       scanner: '#FF8A65',
       printer: '#FFB74D',
       cable: '#FF9E80',
+      license: '#4CAF50',
       other: '#FFCC80'
     };
     return colors[type] || '#ccc';

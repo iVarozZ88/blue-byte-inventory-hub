@@ -147,7 +147,7 @@ const AssetsList = ({ preFilteredAssets }: { preFilteredAssets?: Asset[] }) => {
     applyFilters(assets, searchTerm, value);
   };
 
-  const handleExport = async (format: 'pdf' | 'excel', dateRange?: DateRange, customStartDate?: Date, customEndDate?: Date) => {
+  const handleExport = async (format: 'pdf' | 'excel', dateRange?: DateRange) => {
     try {
       const title = type ? typeLabels[type] : 'Todos los Activos';
       
