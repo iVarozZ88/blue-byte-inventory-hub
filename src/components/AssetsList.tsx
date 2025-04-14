@@ -37,6 +37,8 @@ import {
   Loader2
 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+import { exportToPDF } from '@/lib/exportPDF';
+import { exportToExcel } from '@/lib/exportExcel';
 import ExportDialog from '@/components/ExportDialog';
 
 const typeLabels: Record<AssetType, string> = {
@@ -135,7 +137,7 @@ const AssetsList = () => {
     applyFilters(assets, searchTerm, value);
   };
 
-  const handleExport = (format: 'pdf' | 'excel') => {
+  const handleExport = async (format: 'pdf' | 'excel') => {
     try {
       const title = type ? typeLabels[type as AssetType] : 'Todos los Activos';
       
