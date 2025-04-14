@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Asset, AssetType, getAssets } from '@/lib/db';
@@ -34,12 +35,14 @@ import {
   PlusCircle,
   Cable,
   Download,
-  Loader2
+  Loader2,
+  FileText
 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { exportToPDF } from '@/lib/exportPDF';
 import { exportToExcel } from '@/lib/exportExcel';
 import ExportDialog from '@/components/ExportDialog';
+import { DateRange } from '@/lib/dateUtils';
 
 const typeLabels: Record<AssetType, string> = {
   computer: 'Computadoras',
@@ -52,6 +55,7 @@ const typeLabels: Record<AssetType, string> = {
   scanner: 'Escáneres',
   printer: 'Impresoras',
   cable: 'Cables',
+  license: 'Licencias',
   other: 'Otros Dispositivos'
 };
 
@@ -67,11 +71,12 @@ const getAssetIcon = (type: AssetType) => {
     case 'scanner': return <ScanLine size={16} />;
     case 'printer': return <Printer size={16} />;
     case 'cable': return <Cable size={16} />;
+    case 'license': return <FileText size={16} />;
     default: return <HelpCircle size={16} />;
   }
 };
 
-const AssetsList = () => {
+const AssetsList = ({ preFilteredAssets }: { preFilteredAssets?: Asset[] }) => {
   const { type } = useParams<{ type: AssetType }>();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [filteredAssets, setFilteredAssets] = useState<Asset[]>([]);
@@ -80,8 +85,14 @@ const AssetsList = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadAssets();
-  }, [type]);
+    if (preFilteredAssets) {
+      setAssets(preFilteredAssets);
+      applyFilters(preFilteredAssets, searchTerm, statusFilter);
+      setLoading(false);
+    } else {
+      loadAssets();
+    }
+  }, [type, preFilteredAssets, searchTerm, statusFilter]);
 
   const loadAssets = async () => {
     setLoading(true);
@@ -137,14 +148,14 @@ const AssetsList = () => {
     applyFilters(assets, searchTerm, value);
   };
 
-  const handleExport = async (format: 'pdf' | 'excel') => {
+  const handleExport = async (format: 'pdf' | 'excel', dateRange?: DateRange, customStartDate?: Date, customEndDate?: Date) => {
     try {
       const title = type ? typeLabels[type as AssetType] : 'Todos los Activos';
       
       if (format === 'pdf') {
-        exportToPDF(filteredAssets, title);
+        exportToPDF(filteredAssets, title, dateRange, customStartDate, customEndDate);
       } else {
-        exportToExcel(filteredAssets, title);
+        exportToExcel(filteredAssets, title, dateRange, customStartDate, customEndDate);
       }
       
       toast({

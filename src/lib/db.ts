@@ -347,6 +347,7 @@ export const getAssetStatistics = async () => {
       scanner: 0,
       printer: 0,
       cable: 0,
+      license: 0,
       other: 0,
     };
     
@@ -387,6 +388,7 @@ export const getAssetStatistics = async () => {
         scanner: 0,
         printer: 0,
         cable: 0,
+        license: 0,
         other: 0,
       },
       recentlyUpdated: []

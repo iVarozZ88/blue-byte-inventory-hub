@@ -14,6 +14,7 @@ import EditAssetPage from "./pages/EditAssetPage";
 import UsersListPage from "./pages/UsersListPage";
 import UserDetailPage from "./pages/UserDetailPage";
 import TrashPage from "./pages/TrashPage";
+import AdminPage from "./pages/AdminPage";
 import { useEffect } from "react";
 import { seedInitialData } from "./lib/db";
 
@@ -42,6 +43,7 @@ const App = () => {
               <Route path="users" element={<UsersListPage />} />
               <Route path="users/:username" element={<UserDetailPage />} />
               <Route path="trash" element={<TrashPage />} />
+              <Route path="admin" element={<AdminPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

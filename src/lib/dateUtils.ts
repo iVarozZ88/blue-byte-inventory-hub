@@ -4,6 +4,16 @@ import { Asset } from './db';
 // Date range options for filtering
 export type DateRange = 'all' | 'last-month' | 'last-three-months' | 'last-six-months' | 'last-year' | 'custom';
 
+// Spanish translations for date ranges
+export const dateRangeLabels = {
+  'all': 'Todos',
+  'last-month': 'Último mes',
+  'last-three-months': 'Últimos 3 meses',
+  'last-six-months': 'Últimos 6 meses',
+  'last-year': 'Último año',
+  'custom': 'Personalizado'
+};
+
 // Function to filter assets by date range
 export const filterAssetsByDateRange = (assets: Asset[], dateRange: DateRange, customStartDate?: Date, customEndDate?: Date): Asset[] => {
   if (dateRange === 'all') {

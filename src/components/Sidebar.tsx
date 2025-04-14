@@ -15,7 +15,9 @@ import {
   PlusCircle, 
   Trash2,
   Cable,
-  Users
+  Users,
+  FileText,
+  FolderLock
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -136,6 +138,14 @@ const Sidebar = () => {
           <span>Cables</span>
         </Link>
         
+        <Link 
+          to="/assets/license"
+          className={isActive('/assets/license') ? "sidebar-item active" : "sidebar-item"}
+        >
+          <FileText size={18} />
+          <span>Licencias</span>
+        </Link>
+        
         <div className="mt-8 border-t border-gray-700 pt-6">
           <Link 
             to="/users"
@@ -143,6 +153,14 @@ const Sidebar = () => {
           >
             <Users size={18} />
             <span>Usuarios</span>
+          </Link>
+          
+          <Link 
+            to="/admin"
+            className={isActive('/admin') ? "sidebar-item active" : "sidebar-item"}
+          >
+            <FolderLock size={18} />
+            <span>Administrador</span>
           </Link>
         </div>
       </nav>
