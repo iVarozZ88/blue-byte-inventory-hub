@@ -1,23 +1,13 @@
 
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
 
 // Define asset types
-export type AssetType = 
-  | 'computer'
-  | 'laptop'
-  | 'monitor'
-  | 'mouse'
-  | 'keyboard'
-  | 'telephone'
-  | 'mobile'
-  | 'scanner'
-  | 'printer'
-  | 'cable'
-  | 'other';
+export type AssetType = Database["public"]["Enums"]["asset_type"];
 
 // Define asset status
-export type AssetStatus = 'available' | 'assigned' | 'maintenance' | 'retired';
+export type AssetStatus = Database["public"]["Enums"]["asset_status"];
 
 // Define asset interface
 export interface Asset {
@@ -67,11 +57,11 @@ const mapSupabaseAsset = (asset: any): Asset => {
 const mapToSupabaseAsset = (asset: Asset | Omit<Asset, 'id' | 'lastUpdated'>) => {
   return {
     name: asset.name,
-    type: asset.type,
+    type: asset.type as Database["public"]["Enums"]["asset_type"],
     model: asset.model || null,
     serial_number: asset.serialNumber || null,
     purchase_date: asset.purchaseDate || null,
-    status: asset.status,
+    status: asset.status as Database["public"]["Enums"]["asset_status"],
     assigned_to: asset.assignedTo || null,
     notes: asset.notes || null
   };
@@ -466,147 +456,32 @@ export const seedInitialData = async () => {
       const initialAssets = [
         {
           name: "Dell XPS 15",
-          type: "laptop",
+          type: "laptop" as AssetType,
           model: "XPS 15 9500",
           serial_number: "SN12345678",
           purchase_date: "2022-06-15",
-          status: "assigned",
+          status: "assigned" as AssetStatus,
           assigned_to: "Juan Pérez",
           notes: "Laptop para desarrollador"
         },
         {
           name: "HP EliteBook",
-          type: "laptop",
+          type: "laptop" as AssetType,
           model: "EliteBook 840 G8",
           serial_number: "HP987654321",
           purchase_date: "2022-03-10",
-          status: "available",
+          status: "available" as AssetStatus,
           notes: "Laptop de respaldo"
         },
         {
           name: "Dell UltraSharp",
-          type: "monitor",
+          type: "monitor" as AssetType,
           model: "U2720Q",
           serial_number: "MON123456",
           purchase_date: "2022-06-15",
-          status: "assigned",
+          status: "assigned" as AssetStatus,
           assigned_to: "María López",
           notes: "Monitor 4K de 27 pulgadas"
-        },
-        {
-          name: "Logitech MX Master",
-          type: "mouse",
-          model: "MX Master 3",
-          serial_number: "LG456789",
-          purchase_date: "2022-01-20",
-          status: "assigned",
-          assigned_to: "Juan Pérez",
-          notes: "Mouse inalámbrico"
-        },
-        {
-          name: "Apple Magic Keyboard",
-          type: "keyboard",
-          model: "Magic Keyboard with Numeric Keypad",
-          serial_number: "APP789012",
-          purchase_date: "2022-02-15",
-          status: "available",
-          notes: "Teclado inalámbrico"
-        },
-        {
-          name: "Cisco IP Phone",
-          type: "telephone",
-          model: "8841",
-          serial_number: "CIS345678",
-          purchase_date: "2021-11-05",
-          status: "assigned",
-          assigned_to: "Recepción",
-          notes: "Teléfono de recepción"
-        },
-        {
-          name: "iPhone 13",
-          type: "mobile",
-          model: "iPhone 13 Pro",
-          serial_number: "IPH234567",
-          purchase_date: "2022-09-25",
-          status: "assigned",
-          assigned_to: "María López",
-          notes: "Teléfono de empresa"
-        },
-        {
-          name: "Fujitsu ScanSnap",
-          type: "scanner",
-          model: "iX1600",
-          serial_number: "FUJ567890",
-          purchase_date: "2022-04-18",
-          status: "available",
-          notes: "Escáner de documentos"
-        },
-        {
-          name: "HP LaserJet",
-          type: "printer",
-          model: "LaserJet Pro M404dn",
-          serial_number: "HPP123456",
-          purchase_date: "2022-05-12",
-          status: "maintenance",
-          notes: "Necesita reemplazo de tóner"
-        },
-        {
-          name: "Dell Optiplex",
-          type: "computer",
-          model: "Optiplex 7090",
-          serial_number: "OPT123456",
-          purchase_date: "2021-12-10",
-          status: "assigned",
-          assigned_to: "Sala de Conferencias",
-          notes: "PC para sala de reuniones"
-        },
-        {
-          name: "Dell XPS Desktop",
-          type: "computer",
-          model: "XPS 8940",
-          serial_number: "XPS987654",
-          purchase_date: "2022-08-05",
-          status: "retired",
-          notes: "Hardware obsoleto"
-        },
-        {
-          name: "LG UltraWide",
-          type: "monitor",
-          model: "34WN80C-B",
-          serial_number: "LG345678",
-          purchase_date: "2022-07-14",
-          status: "assigned",
-          assigned_to: "Equipo de Diseño",
-          notes: "Monitor ultrawide para diseñadores"
-        },
-        {
-          name: "Cable HDMI",
-          type: "cable",
-          model: "HDMI 2.0",
-          serial_number: "HDM123456",
-          purchase_date: "2022-01-15",
-          status: "assigned",
-          assigned_to: "Juan Pérez",
-          notes: "Cable para conectar laptop a monitor"
-        },
-        {
-          name: "Cable USB-C",
-          type: "cable",
-          model: "USB-C a USB-C",
-          serial_number: "USBC789012",
-          purchase_date: "2022-03-20",
-          status: "assigned",
-          assigned_to: "María López",
-          notes: "Cable de carga rápida"
-        },
-        {
-          name: "Cable Ethernet",
-          type: "cable",
-          model: "Cat6",
-          serial_number: "ETH567890",
-          purchase_date: "2022-02-10",
-          status: "available",
-          notes: "Cable de 3 metros"
         }
       ];
 
