@@ -47,7 +47,27 @@ const Dashboard = () => {
       try {
         await seedInitialData();
         const statistics = await getAssetStatistics();
-        setStats(statistics);
+        
+        // Transform the statistics to ensure type compatibility
+        const typedStats = {
+          ...statistics,
+          byType: {
+            computer: statistics.byType.computer || 0,
+            laptop: statistics.byType.laptop || 0,
+            monitor: statistics.byType.monitor || 0,
+            mouse: statistics.byType.mouse || 0,
+            keyboard: statistics.byType.keyboard || 0,
+            telephone: statistics.byType.telephone || 0,
+            mobile: statistics.byType.mobile || 0,
+            scanner: statistics.byType.scanner || 0,
+            printer: statistics.byType.printer || 0,
+            cable: statistics.byType.cable || 0,
+            license: statistics.byType.license || 0,
+            other: statistics.byType.other || 0,
+          }
+        };
+        
+        setStats(typedStats);
       } catch (error) {
         console.error("Error loading statistics:", error);
       } finally {
