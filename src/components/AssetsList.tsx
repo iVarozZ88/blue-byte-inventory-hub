@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Asset, AssetType, getAssets } from '@/lib/db';
@@ -44,7 +43,7 @@ import { exportToExcel } from '@/lib/exportExcel';
 import ExportDialog from '@/components/ExportDialog';
 import { DateRange } from '@/lib/dateUtils';
 
-const typeLabels: Record<AssetType, string> = {
+const typeLabels: Record<string, string> = {
   computer: 'Computadoras',
   laptop: 'Portátiles',
   monitor: 'Monitores',
@@ -59,7 +58,7 @@ const typeLabels: Record<AssetType, string> = {
   other: 'Otros Dispositivos'
 };
 
-const getAssetIcon = (type: AssetType) => {
+const getAssetIcon = (type: string) => {
   switch (type) {
     case 'computer': return <Computer size={16} />;
     case 'laptop': return <Laptop size={16} />;
@@ -77,7 +76,7 @@ const getAssetIcon = (type: AssetType) => {
 };
 
 const AssetsList = ({ preFilteredAssets }: { preFilteredAssets?: Asset[] }) => {
-  const { type } = useParams<{ type: AssetType }>();
+  const { type } = useParams<{ type: string }>();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [filteredAssets, setFilteredAssets] = useState<Asset[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -150,12 +149,12 @@ const AssetsList = ({ preFilteredAssets }: { preFilteredAssets?: Asset[] }) => {
 
   const handleExport = async (format: 'pdf' | 'excel', dateRange?: DateRange, customStartDate?: Date, customEndDate?: Date) => {
     try {
-      const title = type ? typeLabels[type as AssetType] : 'Todos los Activos';
+      const title = type ? typeLabels[type] : 'Todos los Activos';
       
       if (format === 'pdf') {
-        exportToPDF(filteredAssets, title, dateRange, customStartDate, customEndDate);
+        exportToPDF(filteredAssets, title);
       } else {
-        exportToExcel(filteredAssets, title, dateRange, customStartDate, customEndDate);
+        exportToExcel(filteredAssets, title);
       }
       
       toast({
@@ -181,7 +180,7 @@ const AssetsList = ({ preFilteredAssets }: { preFilteredAssets?: Asset[] }) => {
     );
   }
 
-  const title = type ? typeLabels[type as AssetType] : 'Todos los Activos';
+  const title = type ? typeLabels[type] : 'Todos los Activos';
 
   return (
     <div className="space-y-6">

@@ -1,4 +1,3 @@
-
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
@@ -336,7 +335,7 @@ export const getAssetStatistics = async () => {
     };
     
     // Count by type
-    const typeCounts: Record<AssetType, number> = {
+    const typeCounts: Record<string, number> = {
       computer: 0,
       laptop: 0,
       monitor: 0,
