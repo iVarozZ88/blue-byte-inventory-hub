@@ -610,14 +610,16 @@ export const seedInitialData = async () => {
         }
       ];
 
-      // Insert all initial assets
-      const { error: insertError } = await supabase
-        .from('assets')
-        .insert(initialAssets);
-      
-      if (insertError) {
-        console.error('Error seeding initial data:', insertError);
-        return;
+      // Insert each asset individually
+      for (const asset of initialAssets) {
+        const { error } = await supabase
+          .from('assets')
+          .insert(asset);
+          
+        if (error) {
+          console.error('Error seeding asset:', error);
+          // Continue with other assets even if one fails
+        }
       }
       
       console.log('Initial data seeded successfully');

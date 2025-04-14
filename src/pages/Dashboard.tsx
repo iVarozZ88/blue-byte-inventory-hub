@@ -5,7 +5,8 @@ import {
   Package, 
   CheckCircle, 
   Users, 
-  AlertTriangle 
+  AlertTriangle,
+  Loader2 
 } from 'lucide-react';
 import StatCard from '@/components/StatCard';
 import AssetDistributionChart from '@/components/AssetDistributionChart';
@@ -32,26 +33,38 @@ const Dashboard = () => {
       mobile: 0,
       scanner: 0,
       printer: 0,
+      cable: 0,
       other: 0,
     },
     recentlyUpdated: [],
   });
+  const [loading, setLoading] = useState(true);
 
   // Load or seed initial data if empty
   useEffect(() => {
-    seedInitialData();
-    const statistics = getAssetStatistics();
-    setStats(statistics);
+    const loadStatistics = async () => {
+      try {
+        await seedInitialData();
+        const statistics = await getAssetStatistics();
+        setStats(statistics);
+      } catch (error) {
+        console.error("Error loading statistics:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadStatistics();
   }, []);
 
   // Chart data transformations
-  const typeChartData = Object.entries(stats.byType).map(([type, count]) => ({
+  const typeChartData = Object.entries(stats.byType || {}).map(([type, count]) => ({
     name: type,
     value: count,
     color: getTypeColor(type)
   }));
 
-  const statusChartData = Object.entries(stats.byStatus).map(([status, count]) => ({
+  const statusChartData = Object.entries(stats.byStatus || {}).map(([status, count]) => ({
     name: status,
     value: count,
     color: getStatusColor(status)
@@ -68,6 +81,7 @@ const Dashboard = () => {
       mobile: '#F06292',
       scanner: '#FF8A65',
       printer: '#FFB74D',
+      cable: '#FF9E80',
       other: '#FFCC80'
     };
     return colors[type] || '#ccc';
@@ -81,6 +95,15 @@ const Dashboard = () => {
       retired: '#757575'
     };
     return colors[status] || '#ccc';
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-lg">Cargando estadísticas...</span>
+      </div>
+    );
   }
 
   return (

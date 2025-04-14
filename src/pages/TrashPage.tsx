@@ -107,6 +107,11 @@ const TrashPage = () => {
       });
     } catch (error) {
       console.error('Error restoring asset:', error);
+      toast({
+        title: "Error al restaurar",
+        description: "No se pudo restaurar el activo.",
+        variant: "destructive",
+      });
     } finally {
       setProcessingId(null);
     }
@@ -124,6 +129,11 @@ const TrashPage = () => {
       });
     } catch (error) {
       console.error('Error deleting asset:', error);
+      toast({
+        title: "Error al eliminar",
+        description: "No se pudo eliminar permanentemente el activo.",
+        variant: "destructive",
+      });
     } finally {
       setProcessingId(null);
     }

@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Asset, getAssets, deleteAsset } from '@/lib/db';
+import { Asset, deleteAsset } from '@/lib/db';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -29,7 +29,8 @@ import {
   ScanLine,
   HelpCircle,
   Edit,
-  Trash
+  Trash,
+  Loader2
 } from 'lucide-react';
 
 const AssetDetail = () => {
@@ -38,30 +39,46 @@ const AssetDetail = () => {
   const { toast } = useToast();
   const [asset, setAsset] = useState<Asset | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
   useEffect(() => {
-    if (id) {
-      const assets = getAssets();
-      const foundAsset = assets.find(a => a.id === id);
-      
-      if (foundAsset) {
-        setAsset(foundAsset);
-      } else {
-        toast({
-          title: "Activo no encontrado",
-          description: "El activo solicitado no se pudo encontrar.",
-          variant: "destructive",
-        });
-        navigate('/');
+    const loadAsset = async () => {
+      if (id) {
+        try {
+          const assets = await getAssets();
+          const foundAsset = assets.find(a => a.id === id);
+          
+          if (foundAsset) {
+            setAsset(foundAsset);
+          } else {
+            toast({
+              title: "Activo no encontrado",
+              description: "El activo solicitado no se pudo encontrar.",
+              variant: "destructive",
+            });
+            navigate('/');
+          }
+        } catch (error) {
+          console.error("Error loading asset:", error);
+          toast({
+            title: "Error",
+            description: "No se pudo cargar la información del activo.",
+            variant: "destructive",
+          });
+        } finally {
+          setLoading(false);
+        }
       }
-      setLoading(false);
-    }
+    };
+
+    loadAsset();
   }, [id, navigate, toast]);
 
-  const handleDeleteAsset = () => {
+  const handleDeleteAsset = async () => {
     try {
       if (id) {
-        deleteAsset(id);
+        setIsDeleting(true);
+        await deleteAsset(id);
         toast({
           title: "Activo eliminado",
           description: "El activo ha sido eliminado del inventario.",
@@ -75,6 +92,8 @@ const AssetDetail = () => {
         description: "Hubo un problema al eliminar el activo.",
         variant: "destructive",
       });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -110,8 +129,19 @@ const AssetDetail = () => {
     }
   };
 
+  // Missing import
+  const getAssets = async () => {
+    const { getAssets } = await import('@/lib/db');
+    return getAssets();
+  };
+
   if (loading) {
-    return <div className="p-8 text-center">Cargando información del activo...</div>;
+    return (
+      <div className="flex justify-center items-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-lg">Cargando información del activo...</span>
+      </div>
+    );
   }
 
   if (!asset) {
@@ -188,8 +218,13 @@ const AssetDetail = () => {
               <Button 
                 variant="destructive"
                 className="flex items-center gap-2"
+                disabled={isDeleting}
               >
-                <Trash size={16} />
+                {isDeleting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash size={16} />
+                )}
                 <span>Eliminar</span>
               </Button>
             </AlertDialogTrigger>

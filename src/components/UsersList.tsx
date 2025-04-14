@@ -11,18 +11,29 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
-import { Search, UserCircle } from 'lucide-react';
+import { Search, UserCircle, Loader2 } from 'lucide-react';
 
 const UsersList = () => {
   const [users, setUsers] = useState<string[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    // Get all unique users with assigned assets
-    const allUsers = getUsers();
-    setUsers(allUsers);
-    setFilteredUsers(allUsers);
+    const loadUsers = async () => {
+      try {
+        // Get all unique users with assigned assets
+        const allUsers = await getUsers();
+        setUsers(allUsers);
+        setFilteredUsers(allUsers);
+      } catch (error) {
+        console.error("Error loading users:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadUsers();
   }, []);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,6 +50,15 @@ const UsersList = () => {
       setFilteredUsers(users);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-lg">Cargando usuarios...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

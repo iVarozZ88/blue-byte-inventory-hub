@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Asset, AssetType, AssetStatus, addAsset, updateAsset, getAssets, formatDate } from '@/lib/db';
+import { Asset, AssetType, AssetStatus, addAsset, updateAsset, formatDate } from '@/lib/db';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,6 +15,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
+import { Loader2 } from 'lucide-react';
 
 interface AssetFormProps {
   mode: 'create' | 'edit';
@@ -58,24 +59,40 @@ const AssetForm = ({ mode }: AssetFormProps) => {
   });
 
   const [loading, setLoading] = useState<boolean>(mode === 'edit');
-
+  const [submitting, setSubmitting] = useState<boolean>(false);
+  
   useEffect(() => {
-    if (mode === 'edit' && id) {
-      const assets = getAssets();
-      const existingAsset = assets.find(a => a.id === id);
-      
-      if (existingAsset) {
-        setAsset(existingAsset);
-      } else {
-        toast({
-          title: "Asset not found",
-          description: "The requested asset could not be found.",
-          variant: "destructive",
-        });
-        navigate('/');
+    const loadAsset = async () => {
+      if (mode === 'edit' && id) {
+        try {
+          const { getAssets } = await import('@/lib/db');
+          const assets = await getAssets();
+          const existingAsset = assets.find(a => a.id === id);
+          
+          if (existingAsset) {
+            setAsset(existingAsset);
+          } else {
+            toast({
+              title: "Asset not found",
+              description: "The requested asset could not be found.",
+              variant: "destructive",
+            });
+            navigate('/');
+          }
+        } catch (error) {
+          console.error("Error loading asset:", error);
+          toast({
+            title: "Error",
+            description: "Could not load asset information.",
+            variant: "destructive",
+          });
+        } finally {
+          setLoading(false);
+        }
       }
-      setLoading(false);
-    }
+    };
+    
+    loadAsset();
   }, [id, mode, navigate, toast]);
 
   const handleInputChange = (
@@ -89,7 +106,7 @@ const AssetForm = ({ mode }: AssetFormProps) => {
     setAsset(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!asset.name || !asset.type || !asset.status) {
@@ -102,14 +119,16 @@ const AssetForm = ({ mode }: AssetFormProps) => {
     }
 
     try {
+      setSubmitting(true);
+      
       if (mode === 'create') {
-        const newAsset = addAsset(asset as Omit<Asset, 'id' | 'lastUpdated'>);
+        const newAsset = await addAsset(asset as Omit<Asset, 'id' | 'lastUpdated'>);
         toast({
           title: "Asset created",
           description: `${newAsset.name} has been added to inventory.`,
         });
       } else if (mode === 'edit' && id) {
-        const updatedAsset = updateAsset(asset as Asset);
+        const updatedAsset = await updateAsset(asset as Asset);
         toast({
           title: "Asset updated",
           description: `${updatedAsset.name} has been updated.`,
@@ -124,11 +143,18 @@ const AssetForm = ({ mode }: AssetFormProps) => {
         description: "There was a problem saving the asset information.",
         variant: "destructive",
       });
+    } finally {
+      setSubmitting(false);
     }
   };
 
   if (loading) {
-    return <div className="p-8 text-center">Loading asset information...</div>;
+    return (
+      <div className="flex justify-center items-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-lg">Loading asset information...</span>
+      </div>
+    );
   }
 
   return (
@@ -260,11 +286,19 @@ const AssetForm = ({ mode }: AssetFormProps) => {
             type="button" 
             variant="outline"
             onClick={() => navigate(-1)}
+            disabled={submitting}
           >
             Cancel
           </Button>
-          <Button type="submit">
-            {mode === 'create' ? 'Add Asset' : 'Save Changes'}
+          <Button type="submit" disabled={submitting}>
+            {submitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {mode === 'create' ? 'Adding Asset...' : 'Saving Changes...'}
+              </>
+            ) : (
+              mode === 'create' ? 'Add Asset' : 'Save Changes'
+            )}
           </Button>
         </CardFooter>
       </form>

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Asset, getAssetsByUser } from '@/lib/db';
@@ -11,7 +12,6 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import {
   Computer, 
   Laptop, 
@@ -26,7 +26,8 @@ import {
   UserCircle,
   ArrowLeft,
   Cable,
-  Download
+  Download,
+  Loader2
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -75,12 +76,26 @@ const UserDetail = () => {
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    if (username) {
-      const decodedUsername = decodeURIComponent(username);
-      const userAssets = getAssetsByUser(decodedUsername);
-      setAssets(userAssets);
-      setLoading(false);
-    }
+    const loadUserAssets = async () => {
+      if (username) {
+        try {
+          const decodedUsername = decodeURIComponent(username);
+          const userAssets = await getAssetsByUser(decodedUsername);
+          setAssets(userAssets);
+        } catch (error) {
+          console.error("Error loading user assets:", error);
+          toast({
+            title: "Error",
+            description: "No se pudieron cargar los dispositivos del usuario.",
+            variant: "destructive",
+          });
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    
+    loadUserAssets();
   }, [username]);
 
   const handleExport = (format: 'pdf' | 'excel') => {
@@ -111,7 +126,12 @@ const UserDetail = () => {
   };
 
   if (loading) {
-    return <div className="p-8 text-center">Cargando datos del usuario...</div>;
+    return (
+      <div className="flex justify-center items-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-lg">Cargando datos del usuario...</span>
+      </div>
+    );
   }
 
   if (!username) {
