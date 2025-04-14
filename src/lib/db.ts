@@ -143,7 +143,12 @@ export const addAsset = async (asset: Omit<Asset, 'id' | 'lastUpdated'>): Promis
 // Update an existing asset
 export const updateAsset = async (asset: Asset): Promise<Asset> => {
   try {
-    const supabaseAsset = mapToSupabaseAsset(asset);
+    const supabaseAsset = {
+      ...mapToSupabaseAsset(asset),
+      // We'll explicitly update the last_updated field to now() to ensure it reflects
+      // the current update time rather than relying on the default value
+      last_updated: new Date().toISOString()
+    };
     
     const { data, error } = await supabase
       .from('assets')

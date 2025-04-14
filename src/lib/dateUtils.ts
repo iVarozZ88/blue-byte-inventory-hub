@@ -35,12 +35,15 @@ export const filterAssetsByDateRange = (assets: Asset[], dateRange: DateRange, c
   }
 
   return assets.filter(asset => {
+    // Parse the asset.lastUpdated string to a Date object for comparison
     const assetDate = new Date(asset.lastUpdated);
     
     if (dateRange === 'custom' && customEndDate) {
+      // For custom range, check if the date falls between start and end dates
       return assetDate >= startDate && assetDate <= customEndDate;
     }
     
+    // For predefined ranges, check if the date is after start date and before or equal to today
     return assetDate >= startDate && assetDate <= today;
   });
 };
