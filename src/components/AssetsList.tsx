@@ -34,7 +34,8 @@ import {
   Search,
   PlusCircle,
   Cable,
-  Download
+  Download,
+  Loader2
 } from 'lucide-react';
 import { 
   DropdownMenu,
@@ -82,18 +83,35 @@ const AssetsList = () => {
   const [filteredAssets, setFilteredAssets] = useState<Asset[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const allAssets = getAssets();
-    
-    // Filter by type if specified
-    const typeFilteredAssets = type 
-      ? allAssets.filter(asset => asset.type === type) 
-      : allAssets;
-      
-    setAssets(typeFilteredAssets);
-    applyFilters(typeFilteredAssets, searchTerm, statusFilter);
+    loadAssets();
   }, [type]);
+
+  const loadAssets = async () => {
+    setLoading(true);
+    try {
+      const allAssets = await getAssets();
+      
+      // Filter by type if specified
+      const typeFilteredAssets = type 
+        ? allAssets.filter(asset => asset.type === type) 
+        : allAssets;
+        
+      setAssets(typeFilteredAssets);
+      applyFilters(typeFilteredAssets, searchTerm, statusFilter);
+    } catch (error) {
+      console.error('Error loading assets:', error);
+      toast({
+        title: "Error al cargar activos",
+        description: "No se pudieron cargar los activos del inventario.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const applyFilters = (assetList: Asset[], search: string, status: string) => {
     let filtered = assetList;
@@ -151,6 +169,15 @@ const AssetsList = () => {
       });
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-lg">Cargando activos...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

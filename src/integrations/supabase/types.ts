@@ -9,7 +9,93 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      assets: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          id: string
+          last_updated: string
+          model: string | null
+          name: string
+          notes: string | null
+          purchase_date: string | null
+          serial_number: string | null
+          status: Database["public"]["Enums"]["asset_status"]
+          type: Database["public"]["Enums"]["asset_type"]
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at?: string
+          id?: string
+          last_updated?: string
+          model?: string | null
+          name: string
+          notes?: string | null
+          purchase_date?: string | null
+          serial_number?: string | null
+          status?: Database["public"]["Enums"]["asset_status"]
+          type: Database["public"]["Enums"]["asset_type"]
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          id?: string
+          last_updated?: string
+          model?: string | null
+          name?: string
+          notes?: string | null
+          purchase_date?: string | null
+          serial_number?: string | null
+          status?: Database["public"]["Enums"]["asset_status"]
+          type?: Database["public"]["Enums"]["asset_type"]
+        }
+        Relationships: []
+      }
+      trashed_assets: {
+        Row: {
+          assigned_to: string | null
+          created_at: string
+          deleted_at: string
+          id: string
+          last_updated: string
+          model: string | null
+          name: string
+          notes: string | null
+          purchase_date: string | null
+          serial_number: string | null
+          status: Database["public"]["Enums"]["asset_status"]
+          type: Database["public"]["Enums"]["asset_type"]
+        }
+        Insert: {
+          assigned_to?: string | null
+          created_at: string
+          deleted_at?: string
+          id: string
+          last_updated: string
+          model?: string | null
+          name: string
+          notes?: string | null
+          purchase_date?: string | null
+          serial_number?: string | null
+          status: Database["public"]["Enums"]["asset_status"]
+          type: Database["public"]["Enums"]["asset_type"]
+        }
+        Update: {
+          assigned_to?: string | null
+          created_at?: string
+          deleted_at?: string
+          id?: string
+          last_updated?: string
+          model?: string | null
+          name?: string
+          notes?: string | null
+          purchase_date?: string | null
+          serial_number?: string | null
+          status?: Database["public"]["Enums"]["asset_status"]
+          type?: Database["public"]["Enums"]["asset_type"]
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +104,19 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      asset_status: "available" | "assigned" | "maintenance" | "retired"
+      asset_type:
+        | "computer"
+        | "laptop"
+        | "monitor"
+        | "mouse"
+        | "keyboard"
+        | "telephone"
+        | "mobile"
+        | "scanner"
+        | "printer"
+        | "cable"
+        | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +231,21 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      asset_status: ["available", "assigned", "maintenance", "retired"],
+      asset_type: [
+        "computer",
+        "laptop",
+        "monitor",
+        "mouse",
+        "keyboard",
+        "telephone",
+        "mobile",
+        "scanner",
+        "printer",
+        "cable",
+        "other",
+      ],
+    },
   },
 } as const

@@ -1,4 +1,6 @@
+
 import { toast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 // Define asset types
 export type AssetType = 
@@ -45,14 +47,52 @@ export const formatDate = (date: Date = new Date()): string => {
   return date.toISOString().split('T')[0];
 };
 
-// Get all assets from localStorage
-export const getAssets = (): Asset[] => {
+// Convert Supabase asset to our Asset format
+const mapSupabaseAsset = (asset: any): Asset => {
+  return {
+    id: asset.id,
+    name: asset.name,
+    type: asset.type,
+    model: asset.model || undefined,
+    serialNumber: asset.serial_number || undefined,
+    purchaseDate: asset.purchase_date || undefined,
+    status: asset.status,
+    assignedTo: asset.assigned_to || undefined,
+    notes: asset.notes || undefined,
+    lastUpdated: asset.last_updated ? new Date(asset.last_updated).toISOString().split('T')[0] : formatDate()
+  };
+};
+
+// Convert our Asset format to Supabase format
+const mapToSupabaseAsset = (asset: Asset | Omit<Asset, 'id' | 'lastUpdated'>) => {
+  return {
+    name: asset.name,
+    type: asset.type,
+    model: asset.model || null,
+    serial_number: asset.serialNumber || null,
+    purchase_date: asset.purchaseDate || null,
+    status: asset.status,
+    assigned_to: asset.assignedTo || null,
+    notes: asset.notes || null
+  };
+};
+
+// Get all assets from Supabase
+export const getAssets = async (): Promise<Asset[]> => {
   try {
-    const assets = localStorage.getItem('techInventoryAssets');
-    if (!assets) return [];
-    return JSON.parse(assets);
+    const { data, error } = await supabase
+      .from('assets')
+      .select('*')
+      .order('last_updated', { ascending: false });
+    
+    if (error) {
+      console.error('Error loading assets from Supabase:', error);
+      throw error;
+    }
+    
+    return data.map(mapSupabaseAsset);
   } catch (error) {
-    console.error('Error loading assets from localStorage:', error);
+    console.error('Error loading assets:', error);
     toast({
       title: "Error al cargar inventario",
       description: "Hubo un problema al cargar los datos del inventario.",
@@ -62,345 +102,527 @@ export const getAssets = (): Asset[] => {
   }
 };
 
-// Save assets to localStorage
-export const saveAssets = (assets: Asset[]): void => {
+// Get all trashed assets from Supabase
+export const getTrashedAssets = async (): Promise<Asset[]> => {
   try {
-    localStorage.setItem('techInventoryAssets', JSON.stringify(assets));
+    const { data, error } = await supabase
+      .from('trashed_assets')
+      .select('*')
+      .order('deleted_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error loading trashed assets from Supabase:', error);
+      throw error;
+    }
+    
+    return data.map(mapSupabaseAsset);
   } catch (error) {
-    console.error('Error saving assets to localStorage:', error);
-    toast({
-      title: "Error al guardar inventario",
-      description: "Hubo un problema al guardar los datos del inventario.",
-      variant: "destructive",
-    });
-  }
-};
-
-// Get all trashed assets from localStorage
-export const getTrashedAssets = (): Asset[] => {
-  try {
-    const trashedAssets = localStorage.getItem('techInventoryTrashedAssets');
-    if (!trashedAssets) return [];
-    return JSON.parse(trashedAssets);
-  } catch (error) {
-    console.error('Error loading trashed assets from localStorage:', error);
+    console.error('Error loading trashed assets:', error);
     return [];
   }
 };
 
-// Save trashed assets to localStorage
-export const saveTrashedAssets = (assets: Asset[]): void => {
+// Add a new asset
+export const addAsset = async (asset: Omit<Asset, 'id' | 'lastUpdated'>): Promise<Asset> => {
   try {
-    localStorage.setItem('techInventoryTrashedAssets', JSON.stringify(assets));
+    const supabaseAsset = mapToSupabaseAsset(asset);
+    
+    const { data, error } = await supabase
+      .from('assets')
+      .insert(supabaseAsset)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error adding asset to Supabase:', error);
+      throw error;
+    }
+    
+    return mapSupabaseAsset(data);
   } catch (error) {
-    console.error('Error saving trashed assets to localStorage:', error);
+    console.error('Error adding asset:', error);
+    toast({
+      title: "Error al agregar activo",
+      description: "Hubo un problema al guardar el activo en la base de datos.",
+      variant: "destructive",
+    });
+    throw error;
   }
 };
 
-// Add a new asset
-export const addAsset = (asset: Omit<Asset, 'id' | 'lastUpdated'>): Asset => {
-  const newAsset: Asset = {
-    ...asset,
-    id: generateId(),
-    lastUpdated: formatDate(),
-  };
-  
-  const assets = getAssets();
-  saveAssets([...assets, newAsset]);
-  
-  return newAsset;
-};
-
 // Update an existing asset
-export const updateAsset = (asset: Asset): Asset => {
-  const assets = getAssets();
-  const updatedAsset = {
-    ...asset,
-    lastUpdated: formatDate(),
-  };
-  
-  const updatedAssets = assets.map(a => 
-    a.id === asset.id ? updatedAsset : a
-  );
-  
-  saveAssets(updatedAssets);
-  return updatedAsset;
+export const updateAsset = async (asset: Asset): Promise<Asset> => {
+  try {
+    const supabaseAsset = mapToSupabaseAsset(asset);
+    
+    const { data, error } = await supabase
+      .from('assets')
+      .update(supabaseAsset)
+      .eq('id', asset.id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error updating asset in Supabase:', error);
+      throw error;
+    }
+    
+    return mapSupabaseAsset(data);
+  } catch (error) {
+    console.error('Error updating asset:', error);
+    toast({
+      title: "Error al actualizar activo",
+      description: "Hubo un problema al actualizar el activo en la base de datos.",
+      variant: "destructive",
+    });
+    throw error;
+  }
 };
 
 // Delete an asset (move to trash)
-export const deleteAsset = (id: string): void => {
-  const assets = getAssets();
-  const assetToTrash = assets.find(a => a.id === id);
-  
-  if (assetToTrash) {
-    // Add to trash
-    const trashedAssets = getTrashedAssets();
-    saveTrashedAssets([...trashedAssets, assetToTrash]);
+export const deleteAsset = async (id: string): Promise<void> => {
+  try {
+    // First get the asset to be trashed
+    const { data: assetData, error: getError } = await supabase
+      .from('assets')
+      .select('*')
+      .eq('id', id)
+      .single();
     
-    // Remove from active assets
-    const updatedAssets = assets.filter(a => a.id !== id);
-    saveAssets(updatedAssets);
+    if (getError) {
+      console.error('Error getting asset for deletion:', getError);
+      throw getError;
+    }
+    
+    // Insert into trashed_assets
+    const { error: insertError } = await supabase
+      .from('trashed_assets')
+      .insert({
+        id: assetData.id,
+        name: assetData.name,
+        type: assetData.type,
+        model: assetData.model,
+        serial_number: assetData.serial_number,
+        purchase_date: assetData.purchase_date,
+        status: assetData.status,
+        assigned_to: assetData.assigned_to,
+        notes: assetData.notes,
+        last_updated: assetData.last_updated,
+        created_at: assetData.created_at
+      });
+    
+    if (insertError) {
+      console.error('Error adding asset to trash:', insertError);
+      throw insertError;
+    }
+    
+    // Delete from assets
+    const { error: deleteError } = await supabase
+      .from('assets')
+      .delete()
+      .eq('id', id);
+    
+    if (deleteError) {
+      console.error('Error deleting asset:', deleteError);
+      throw deleteError;
+    }
     
     toast({
       title: "Activo eliminado",
-      description: `${assetToTrash.name} ha sido movido a la papelera.`,
+      description: `El activo ha sido movido a la papelera.`,
     });
+  } catch (error) {
+    console.error('Error in deleteAsset:', error);
+    toast({
+      title: "Error al eliminar activo",
+      description: "Hubo un problema al mover el activo a la papelera.",
+      variant: "destructive",
+    });
+    throw error;
   }
 };
 
 // Permanently delete an asset from trash
-export const permanentlyDeleteAsset = (id: string): void => {
-  const trashedAssets = getTrashedAssets();
-  const updatedTrashedAssets = trashedAssets.filter(a => a.id !== id);
-  saveTrashedAssets(updatedTrashedAssets);
+export const permanentlyDeleteAsset = async (id: string): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('trashed_assets')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      console.error('Error permanently deleting asset:', error);
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error in permanentlyDeleteAsset:', error);
+    toast({
+      title: "Error al eliminar activo",
+      description: "Hubo un problema al eliminar permanentemente el activo.",
+      variant: "destructive",
+    });
+    throw error;
+  }
 };
 
 // Restore an asset from trash
-export const restoreAsset = (id: string): void => {
-  const trashedAssets = getTrashedAssets();
-  const assetToRestore = trashedAssets.find(a => a.id === id);
-  
-  if (assetToRestore) {
-    // Add back to active assets
-    const assets = getAssets();
-    const updatedAsset = {
-      ...assetToRestore,
-      lastUpdated: formatDate(),
-    };
-    saveAssets([...assets, updatedAsset]);
+export const restoreAsset = async (id: string): Promise<void> => {
+  try {
+    // Get asset from trash
+    const { data: assetData, error: getError } = await supabase
+      .from('trashed_assets')
+      .select('*')
+      .eq('id', id)
+      .single();
     
-    // Remove from trash
-    const updatedTrashedAssets = trashedAssets.filter(a => a.id !== id);
-    saveTrashedAssets(updatedTrashedAssets);
+    if (getError) {
+      console.error('Error getting trashed asset:', getError);
+      throw getError;
+    }
+    
+    // Insert into assets
+    const { error: insertError } = await supabase
+      .from('assets')
+      .insert({
+        id: assetData.id,
+        name: assetData.name,
+        type: assetData.type,
+        model: assetData.model,
+        serial_number: assetData.serial_number,
+        purchase_date: assetData.purchase_date,
+        status: assetData.status,
+        assigned_to: assetData.assigned_to,
+        notes: assetData.notes,
+        created_at: assetData.created_at
+      });
+    
+    if (insertError) {
+      console.error('Error restoring asset:', insertError);
+      throw insertError;
+    }
+    
+    // Delete from trashed_assets
+    const { error: deleteError } = await supabase
+      .from('trashed_assets')
+      .delete()
+      .eq('id', id);
+    
+    if (deleteError) {
+      console.error('Error removing asset from trash:', deleteError);
+      throw deleteError;
+    }
     
     toast({
       title: "Activo restaurado",
-      description: `${assetToRestore.name} ha sido restaurado del inventario.`,
+      description: `El activo ha sido restaurado del inventario.`,
     });
+  } catch (error) {
+    console.error('Error in restoreAsset:', error);
+    toast({
+      title: "Error al restaurar activo",
+      description: "Hubo un problema al restaurar el activo del inventario.",
+      variant: "destructive",
+    });
+    throw error;
   }
 };
 
 // Get asset statistics
-export const getAssetStatistics = () => {
-  const assets = getAssets();
-  
-  // Count by status
-  const statusCounts = {
-    available: 0,
-    assigned: 0,
-    maintenance: 0,
-    retired: 0,
-  };
-  
-  // Count by type
-  const typeCounts: Record<AssetType, number> = {
-    computer: 0,
-    laptop: 0,
-    monitor: 0,
-    mouse: 0,
-    keyboard: 0,
-    telephone: 0,
-    mobile: 0,
-    scanner: 0,
-    printer: 0,
-    cable: 0,
-    other: 0,
-  };
-  
-  assets.forEach(asset => {
-    // Increment status count
-    statusCounts[asset.status]++;
+export const getAssetStatistics = async () => {
+  try {
+    const assets = await getAssets();
     
-    // Increment type count
-    typeCounts[asset.type]++;
-  });
-  
-  return {
-    total: assets.length,
-    byStatus: statusCounts,
-    byType: typeCounts,
-    recentlyUpdated: assets
-      .sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime())
-      .slice(0, 5)
-  };
+    // Count by status
+    const statusCounts = {
+      available: 0,
+      assigned: 0,
+      maintenance: 0,
+      retired: 0,
+    };
+    
+    // Count by type
+    const typeCounts: Record<AssetType, number> = {
+      computer: 0,
+      laptop: 0,
+      monitor: 0,
+      mouse: 0,
+      keyboard: 0,
+      telephone: 0,
+      mobile: 0,
+      scanner: 0,
+      printer: 0,
+      cable: 0,
+      other: 0,
+    };
+    
+    assets.forEach(asset => {
+      // Increment status count
+      statusCounts[asset.status]++;
+      
+      // Increment type count
+      typeCounts[asset.type]++;
+    });
+    
+    return {
+      total: assets.length,
+      byStatus: statusCounts,
+      byType: typeCounts,
+      recentlyUpdated: assets
+        .sort((a, b) => new Date(b.lastUpdated).getTime() - new Date(a.lastUpdated).getTime())
+        .slice(0, 5)
+    };
+  } catch (error) {
+    console.error('Error getting asset statistics:', error);
+    return {
+      total: 0,
+      byStatus: {
+        available: 0,
+        assigned: 0,
+        maintenance: 0,
+        retired: 0,
+      },
+      byType: {
+        computer: 0,
+        laptop: 0,
+        monitor: 0,
+        mouse: 0,
+        keyboard: 0,
+        telephone: 0,
+        mobile: 0,
+        scanner: 0,
+        printer: 0,
+        cable: 0,
+        other: 0,
+      },
+      recentlyUpdated: []
+    };
+  }
 };
 
 // Get all unique users with assigned assets
-export const getUsers = (): string[] => {
-  const assets = getAssets();
-  
-  // Get all users that have assets assigned
-  const usersSet = new Set<string>();
-  
-  assets.forEach(asset => {
-    if (asset.assignedTo && asset.assignedTo.trim() !== '') {
-      usersSet.add(asset.assignedTo.trim());
+export const getUsers = async (): Promise<string[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('assets')
+      .select('assigned_to')
+      .not('assigned_to', 'is', null);
+    
+    if (error) {
+      console.error('Error getting users:', error);
+      throw error;
     }
-  });
-  
-  return Array.from(usersSet).sort();
+    
+    // Extract unique usernames and filter out empty strings
+    const usersSet = new Set<string>();
+    data.forEach(item => {
+      if (item.assigned_to && item.assigned_to.trim() !== '') {
+        usersSet.add(item.assigned_to.trim());
+      }
+    });
+    
+    return Array.from(usersSet).sort();
+  } catch (error) {
+    console.error('Error in getUsers:', error);
+    return [];
+  }
 };
 
 // Get all assets assigned to a specific user
-export const getAssetsByUser = (username: string): Asset[] => {
-  const assets = getAssets();
-  
-  return assets.filter(asset => 
-    asset.assignedTo === username && asset.status === 'assigned'
-  );
+export const getAssetsByUser = async (username: string): Promise<Asset[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('assets')
+      .select('*')
+      .eq('assigned_to', username)
+      .eq('status', 'assigned');
+    
+    if (error) {
+      console.error('Error getting assets by user:', error);
+      throw error;
+    }
+    
+    return data.map(mapSupabaseAsset);
+  } catch (error) {
+    console.error('Error in getAssetsByUser:', error);
+    return [];
+  }
 };
 
 // Function to seed initial data
-export const seedInitialData = () => {
-  // Only seed if no data exists
-  if (getAssets().length === 0) {
-    const initialAssets: Omit<Asset, 'id' | 'lastUpdated'>[] = [
-      {
-        name: "Dell XPS 15",
-        type: "laptop",
-        model: "XPS 15 9500",
-        serialNumber: "SN12345678",
-        purchaseDate: "2022-06-15",
-        status: "assigned",
-        assignedTo: "Juan Pérez",
-        notes: "Laptop para desarrollador"
-      },
-      {
-        name: "HP EliteBook",
-        type: "laptop",
-        model: "EliteBook 840 G8",
-        serialNumber: "HP987654321",
-        purchaseDate: "2022-03-10",
-        status: "available",
-        notes: "Laptop de respaldo"
-      },
-      {
-        name: "Dell UltraSharp",
-        type: "monitor",
-        model: "U2720Q",
-        serialNumber: "MON123456",
-        purchaseDate: "2022-06-15",
-        status: "assigned",
-        assignedTo: "María López",
-        notes: "Monitor 4K de 27 pulgadas"
-      },
-      {
-        name: "Logitech MX Master",
-        type: "mouse",
-        model: "MX Master 3",
-        serialNumber: "LG456789",
-        purchaseDate: "2022-01-20",
-        status: "assigned",
-        assignedTo: "Juan Pérez",
-        notes: "Mouse inalámbrico"
-      },
-      {
-        name: "Apple Magic Keyboard",
-        type: "keyboard",
-        model: "Magic Keyboard with Numeric Keypad",
-        serialNumber: "APP789012",
-        purchaseDate: "2022-02-15",
-        status: "available",
-        notes: "Teclado inalámbrico"
-      },
-      {
-        name: "Cisco IP Phone",
-        type: "telephone",
-        model: "8841",
-        serialNumber: "CIS345678",
-        purchaseDate: "2021-11-05",
-        status: "assigned",
-        assignedTo: "Recepción",
-        notes: "Teléfono de recepción"
-      },
-      {
-        name: "iPhone 13",
-        type: "mobile",
-        model: "iPhone 13 Pro",
-        serialNumber: "IPH234567",
-        purchaseDate: "2022-09-25",
-        status: "assigned",
-        assignedTo: "María López",
-        notes: "Teléfono de empresa"
-      },
-      {
-        name: "Fujitsu ScanSnap",
-        type: "scanner",
-        model: "iX1600",
-        serialNumber: "FUJ567890",
-        purchaseDate: "2022-04-18",
-        status: "available",
-        notes: "Escáner de documentos"
-      },
-      {
-        name: "HP LaserJet",
-        type: "printer",
-        model: "LaserJet Pro M404dn",
-        serialNumber: "HPP123456",
-        purchaseDate: "2022-05-12",
-        status: "maintenance",
-        notes: "Necesita reemplazo de tóner"
-      },
-      {
-        name: "Dell Optiplex",
-        type: "computer",
-        model: "Optiplex 7090",
-        serialNumber: "OPT123456",
-        purchaseDate: "2021-12-10",
-        status: "assigned",
-        assignedTo: "Sala de Conferencias",
-        notes: "PC para sala de reuniones"
-      },
-      {
-        name: "Dell XPS Desktop",
-        type: "computer",
-        model: "XPS 8940",
-        serialNumber: "XPS987654",
-        purchaseDate: "2022-08-05",
-        status: "retired",
-        notes: "Hardware obsoleto"
-      },
-      {
-        name: "LG UltraWide",
-        type: "monitor",
-        model: "34WN80C-B",
-        serialNumber: "LG345678",
-        purchaseDate: "2022-07-14",
-        status: "assigned",
-        assignedTo: "Equipo de Diseño",
-        notes: "Monitor ultrawide para diseñadores"
-      },
-      {
-        name: "Cable HDMI",
-        type: "cable",
-        model: "HDMI 2.0",
-        serialNumber: "HDM123456",
-        purchaseDate: "2022-01-15",
-        status: "assigned",
-        assignedTo: "Juan Pérez",
-        notes: "Cable para conectar laptop a monitor"
-      },
-      {
-        name: "Cable USB-C",
-        type: "cable",
-        model: "USB-C a USB-C",
-        serialNumber: "USBC789012",
-        purchaseDate: "2022-03-20",
-        status: "assigned",
-        assignedTo: "María López",
-        notes: "Cable de carga rápida"
-      },
-      {
-        name: "Cable Ethernet",
-        type: "cable",
-        model: "Cat6",
-        serialNumber: "ETH567890",
-        purchaseDate: "2022-02-10",
-        status: "available",
-        notes: "Cable de 3 metros"
-      }
-    ];
+export const seedInitialData = async () => {
+  try {
+    // Check if there are any assets already
+    const { count, error: countError } = await supabase
+      .from('assets')
+      .select('*', { count: 'exact', head: true });
+    
+    if (countError) {
+      console.error('Error checking assets count:', countError);
+      return;
+    }
+    
+    // Only seed if no data exists
+    if (count === 0) {
+      const initialAssets = [
+        {
+          name: "Dell XPS 15",
+          type: "laptop",
+          model: "XPS 15 9500",
+          serial_number: "SN12345678",
+          purchase_date: "2022-06-15",
+          status: "assigned",
+          assigned_to: "Juan Pérez",
+          notes: "Laptop para desarrollador"
+        },
+        {
+          name: "HP EliteBook",
+          type: "laptop",
+          model: "EliteBook 840 G8",
+          serial_number: "HP987654321",
+          purchase_date: "2022-03-10",
+          status: "available",
+          notes: "Laptop de respaldo"
+        },
+        {
+          name: "Dell UltraSharp",
+          type: "monitor",
+          model: "U2720Q",
+          serial_number: "MON123456",
+          purchase_date: "2022-06-15",
+          status: "assigned",
+          assigned_to: "María López",
+          notes: "Monitor 4K de 27 pulgadas"
+        },
+        {
+          name: "Logitech MX Master",
+          type: "mouse",
+          model: "MX Master 3",
+          serial_number: "LG456789",
+          purchase_date: "2022-01-20",
+          status: "assigned",
+          assigned_to: "Juan Pérez",
+          notes: "Mouse inalámbrico"
+        },
+        {
+          name: "Apple Magic Keyboard",
+          type: "keyboard",
+          model: "Magic Keyboard with Numeric Keypad",
+          serial_number: "APP789012",
+          purchase_date: "2022-02-15",
+          status: "available",
+          notes: "Teclado inalámbrico"
+        },
+        {
+          name: "Cisco IP Phone",
+          type: "telephone",
+          model: "8841",
+          serial_number: "CIS345678",
+          purchase_date: "2021-11-05",
+          status: "assigned",
+          assigned_to: "Recepción",
+          notes: "Teléfono de recepción"
+        },
+        {
+          name: "iPhone 13",
+          type: "mobile",
+          model: "iPhone 13 Pro",
+          serial_number: "IPH234567",
+          purchase_date: "2022-09-25",
+          status: "assigned",
+          assigned_to: "María López",
+          notes: "Teléfono de empresa"
+        },
+        {
+          name: "Fujitsu ScanSnap",
+          type: "scanner",
+          model: "iX1600",
+          serial_number: "FUJ567890",
+          purchase_date: "2022-04-18",
+          status: "available",
+          notes: "Escáner de documentos"
+        },
+        {
+          name: "HP LaserJet",
+          type: "printer",
+          model: "LaserJet Pro M404dn",
+          serial_number: "HPP123456",
+          purchase_date: "2022-05-12",
+          status: "maintenance",
+          notes: "Necesita reemplazo de tóner"
+        },
+        {
+          name: "Dell Optiplex",
+          type: "computer",
+          model: "Optiplex 7090",
+          serial_number: "OPT123456",
+          purchase_date: "2021-12-10",
+          status: "assigned",
+          assigned_to: "Sala de Conferencias",
+          notes: "PC para sala de reuniones"
+        },
+        {
+          name: "Dell XPS Desktop",
+          type: "computer",
+          model: "XPS 8940",
+          serial_number: "XPS987654",
+          purchase_date: "2022-08-05",
+          status: "retired",
+          notes: "Hardware obsoleto"
+        },
+        {
+          name: "LG UltraWide",
+          type: "monitor",
+          model: "34WN80C-B",
+          serial_number: "LG345678",
+          purchase_date: "2022-07-14",
+          status: "assigned",
+          assigned_to: "Equipo de Diseño",
+          notes: "Monitor ultrawide para diseñadores"
+        },
+        {
+          name: "Cable HDMI",
+          type: "cable",
+          model: "HDMI 2.0",
+          serial_number: "HDM123456",
+          purchase_date: "2022-01-15",
+          status: "assigned",
+          assigned_to: "Juan Pérez",
+          notes: "Cable para conectar laptop a monitor"
+        },
+        {
+          name: "Cable USB-C",
+          type: "cable",
+          model: "USB-C a USB-C",
+          serial_number: "USBC789012",
+          purchase_date: "2022-03-20",
+          status: "assigned",
+          assigned_to: "María López",
+          notes: "Cable de carga rápida"
+        },
+        {
+          name: "Cable Ethernet",
+          type: "cable",
+          model: "Cat6",
+          serial_number: "ETH567890",
+          purchase_date: "2022-02-10",
+          status: "available",
+          notes: "Cable de 3 metros"
+        }
+      ];
 
-    initialAssets.forEach(asset => addAsset(asset));
+      // Insert all initial assets
+      const { error: insertError } = await supabase
+        .from('assets')
+        .insert(initialAssets);
+      
+      if (insertError) {
+        console.error('Error seeding initial data:', insertError);
+        return;
+      }
+      
+      console.log('Initial data seeded successfully');
+    }
+  } catch (error) {
+    console.error('Error in seedInitialData:', error);
   }
 };

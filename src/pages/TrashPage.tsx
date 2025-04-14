@@ -1,6 +1,5 @@
 
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { Asset, getTrashedAssets, restoreAsset, permanentlyDeleteAsset } from '@/lib/db';
 import { 
   Table, 
@@ -25,7 +24,8 @@ import {
   HelpCircle,
   Undo2,
   Trash2,
-  Cable
+  Cable,
+  Loader2
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -71,35 +71,72 @@ const typeLabels: Record<string, string> = {
 
 const TrashPage = () => {
   const [trashedAssets, setTrashedAssets] = useState<Asset[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [processingId, setProcessingId] = useState<string | null>(null);
   
   useEffect(() => {
     loadTrashedAssets();
   }, []);
   
-  const loadTrashedAssets = () => {
-    const assets = getTrashedAssets();
-    setTrashedAssets(assets);
+  const loadTrashedAssets = async () => {
+    setLoading(true);
+    try {
+      const assets = await getTrashedAssets();
+      setTrashedAssets(assets);
+    } catch (error) {
+      console.error('Error loading trashed assets:', error);
+      toast({
+        title: "Error al cargar la papelera",
+        description: "No se pudieron cargar los activos eliminados.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
   
-  const handleRestore = (id: string) => {
-    restoreAsset(id);
-    loadTrashedAssets();
-    
-    toast({
-      title: "Activo restaurado",
-      description: "El activo ha sido restaurado exitosamente.",
-    });
+  const handleRestore = async (id: string) => {
+    setProcessingId(id);
+    try {
+      await restoreAsset(id);
+      await loadTrashedAssets();
+      
+      toast({
+        title: "Activo restaurado",
+        description: "El activo ha sido restaurado exitosamente.",
+      });
+    } catch (error) {
+      console.error('Error restoring asset:', error);
+    } finally {
+      setProcessingId(null);
+    }
   };
   
-  const handleDelete = (id: string) => {
-    permanentlyDeleteAsset(id);
-    loadTrashedAssets();
-    
-    toast({
-      title: "Activo eliminado permanentemente",
-      description: "El activo ha sido eliminado permanentemente.",
-    });
+  const handleDelete = async (id: string) => {
+    setProcessingId(id);
+    try {
+      await permanentlyDeleteAsset(id);
+      await loadTrashedAssets();
+      
+      toast({
+        title: "Activo eliminado permanentemente",
+        description: "El activo ha sido eliminado permanentemente.",
+      });
+    } catch (error) {
+      console.error('Error deleting asset:', error);
+    } finally {
+      setProcessingId(null);
+    }
   };
+  
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-lg">Cargando la papelera...</span>
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-6">
@@ -144,16 +181,29 @@ const TrashPage = () => {
                       variant="ghost" 
                       size="sm" 
                       onClick={() => handleRestore(asset.id)}
+                      disabled={processingId === asset.id}
                       className="inline-flex items-center"
                     >
-                      <Undo2 className="h-4 w-4 mr-1" />
+                      {processingId === asset.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                      ) : (
+                        <Undo2 className="h-4 w-4 mr-1" />
+                      )}
                       Restaurar
                     </Button>
                     
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="sm">
-                          <Trash2 className="h-4 w-4 mr-1" />
+                        <Button 
+                          variant="destructive" 
+                          size="sm"
+                          disabled={processingId === asset.id}
+                        >
+                          {processingId === asset.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                          ) : (
+                            <Trash2 className="h-4 w-4 mr-1" />
+                          )}
                           Eliminar
                         </Button>
                       </AlertDialogTrigger>
