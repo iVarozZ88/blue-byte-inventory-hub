@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Asset, getTrashedAssets, restoreAsset, permanentlyDeleteAsset } from '@/lib/db';
 import { 
@@ -25,7 +24,8 @@ import {
   Undo2,
   Trash2,
   Cable,
-  Loader2
+  Loader2,
+  Download
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -38,6 +38,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import ExportDialog from '@/components/ExportDialog';
 
 const getAssetIcon = (type: string) => {
   switch (type) {
@@ -152,6 +153,19 @@ const TrashPage = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Papelera</h1>
+        
+        {trashedAssets.length > 0 && (
+          <ExportDialog 
+            assets={trashedAssets} 
+            title="Elementos en Papelera"
+            triggerButton={
+              <Button variant="outline" className="flex items-center gap-2">
+                <Download size={16} />
+                <span>Exportar</span>
+              </Button>
+            }
+          />
+        )}
       </div>
 
       {trashedAssets.length === 0 ? (

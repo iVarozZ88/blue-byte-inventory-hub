@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Asset, AssetType, getAssets } from '@/lib/db';
@@ -37,15 +36,8 @@ import {
   Download,
   Loader2
 } from 'lucide-react';
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { toast } from '@/components/ui/use-toast';
-import { exportToPDF } from '@/lib/exportPDF';
-import { exportToExcel } from '@/lib/exportExcel';
+import ExportDialog from '@/components/ExportDialog';
 
 const typeLabels: Record<AssetType, string> = {
   computer: 'Computadoras',
@@ -94,7 +86,6 @@ const AssetsList = () => {
     try {
       const allAssets = await getAssets();
       
-      // Filter by type if specified
       const typeFilteredAssets = type 
         ? allAssets.filter(asset => asset.type === type) 
         : allAssets;
@@ -116,7 +107,6 @@ const AssetsList = () => {
   const applyFilters = (assetList: Asset[], search: string, status: string) => {
     let filtered = assetList;
     
-    // Apply search filter
     if (search) {
       const searchLower = search.toLowerCase();
       filtered = filtered.filter(asset => 
@@ -127,7 +117,6 @@ const AssetsList = () => {
       );
     }
     
-    // Apply status filter
     if (status !== 'all') {
       filtered = filtered.filter(asset => asset.status === status);
     }
@@ -179,30 +168,26 @@ const AssetsList = () => {
     );
   }
 
+  const title = type ? typeLabels[type as AssetType] : 'Todos los Activos';
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h1 className="text-2xl font-bold">
-          {type ? typeLabels[type as AssetType] : 'Todos los Activos'}
+          {title}
         </h1>
         
         <div className="flex gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          <ExportDialog 
+            assets={filteredAssets} 
+            title={title}
+            triggerButton={
               <Button variant="outline" className="flex items-center gap-2">
                 <Download size={16} />
                 <span>Exportar</span>
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleExport('pdf')}>
-                Exportar como PDF
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleExport('excel')}>
-                Exportar como Excel
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            }
+          />
           
           <Button asChild>
             <Link to="/assets/new" className="flex items-center gap-2">
