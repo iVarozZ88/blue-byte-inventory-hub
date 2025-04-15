@@ -43,7 +43,7 @@ const TYPE_COLORS = {
   monitor: '#FFBB28',
   mouse: '#FF8042',
   keyboard: '#A28DF0',
-  telephone: '#B813B8',
+  telephone: '#D650D6',
   mobile: '#4BC0C0',
   scanner: '#9966FF',
   printer: '#FF9F7F',
