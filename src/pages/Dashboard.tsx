@@ -1,21 +1,46 @@
 
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { 
-  Package, 
-  CheckCircle, 
-  Users, 
-  AlertTriangle,
-  Loader2 
-} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/components/ui/use-toast';
+import { getAssetStatistics, Asset } from '@/lib/db';
 import StatCard from '@/components/StatCard';
 import AssetDistributionChart from '@/components/AssetDistributionChart';
 import RecentlyUpdatedTable from '@/components/RecentlyUpdatedTable';
-import { getAssetStatistics, seedInitialData } from '@/lib/db';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { LayoutDashboard, Monitor, Laptop, Users, FileText } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+
+// Define the structure of our stats state
+interface StatsState {
+  total: number;
+  byStatus: {
+    available: number;
+    assigned: number;
+    maintenance: number;
+    retired: number;
+  };
+  byType: {
+    computer: number;
+    laptop: number;
+    monitor: number;
+    mouse: number;
+    keyboard: number;
+    telephone: number;
+    mobile: number;
+    scanner: number;
+    printer: number;
+    cable: number;
+    license: number;
+    other: number;
+    [key: string]: number; // Add index signature
+  };
+  recentlyUpdated: Asset[];
+}
 
 const Dashboard = () => {
-  const [stats, setStats] = useState({
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  
+  const [stats, setStats] = useState<StatsState>({
     total: 0,
     byStatus: {
       available: 0,
@@ -39,158 +64,88 @@ const Dashboard = () => {
     },
     recentlyUpdated: [],
   });
-  const [loading, setLoading] = useState(true);
 
-  // Load or seed initial data if empty
   useEffect(() => {
     const loadStatistics = async () => {
       try {
-        await seedInitialData();
         const statistics = await getAssetStatistics();
-        
-        // Transform the statistics to ensure type compatibility
-        const typedStats = {
-          ...statistics,
-          byType: {
-            computer: statistics.byType.computer || 0,
-            laptop: statistics.byType.laptop || 0,
-            monitor: statistics.byType.monitor || 0,
-            mouse: statistics.byType.mouse || 0,
-            keyboard: statistics.byType.keyboard || 0,
-            telephone: statistics.byType.telephone || 0,
-            mobile: statistics.byType.mobile || 0,
-            scanner: statistics.byType.scanner || 0,
-            printer: statistics.byType.printer || 0,
-            cable: statistics.byType.cable || 0,
-            license: statistics.byType.license || 0,
-            other: statistics.byType.other || 0,
-          }
-        };
-        
-        setStats(typedStats);
+        setStats(statistics as StatsState);
       } catch (error) {
         console.error("Error loading statistics:", error);
-      } finally {
-        setLoading(false);
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar las estadísticas del inventario.",
+          variant: "destructive",
+        });
       }
     };
-    
+
     loadStatistics();
-  }, []);
-
-  // Chart data transformations
-  const typeChartData = Object.entries(stats.byType || {}).map(([type, count]) => ({
-    name: type,
-    value: count,
-    color: getTypeColor(type)
-  }));
-
-  const statusChartData = Object.entries(stats.byStatus || {}).map(([status, count]) => ({
-    name: status,
-    value: count,
-    color: getStatusColor(status)
-  }));
-
-  function getTypeColor(type: string): string {
-    const colors: Record<string, string> = {
-      computer: '#4285F4',
-      laptop: '#5E35B1',
-      monitor: '#673AB7',
-      mouse: '#9575CD',
-      keyboard: '#BA68C8',
-      telephone: '#EC407A',
-      mobile: '#F06292',
-      scanner: '#FF8A65',
-      printer: '#FFB74D',
-      cable: '#FF9E80',
-      license: '#4CAF50',
-      other: '#FFCC80'
-    };
-    return colors[type] || '#ccc';
-  }
-
-  function getStatusColor(status: string): string {
-    const colors: Record<string, string> = {
-      available: '#2ED8B6',
-      assigned: '#4285F4',
-      maintenance: '#FFB74D',
-      retired: '#757575'
-    };
-    return colors[status] || '#ccc';
-  }
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-20">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2 text-lg">Cargando estadísticas...</span>
-      </div>
-    );
-  }
+  }, [toast]);
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Overview of your company's tech inventory</p>
       </div>
       
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard 
-          title="Total Assets" 
+          title="Total de Activos" 
           value={stats.total} 
-          description="across all categories" 
-          icon={<Package size={20} />} 
+          icon={<LayoutDashboard className="h-6 w-6" />}
+          onClick={() => navigate('/assets')}
         />
         <StatCard 
-          title="Available" 
-          value={stats.byStatus.available} 
-          description="ready for assignment" 
-          icon={<CheckCircle size={20} />} 
+          title="Monitores" 
+          value={stats.byType.monitor} 
+          icon={<Monitor className="h-6 w-6" />}
+          onClick={() => navigate('/assets/monitor')}
         />
         <StatCard 
-          title="Assigned" 
-          value={stats.byStatus.assigned} 
-          description="currently in use" 
-          icon={<Users size={20} />} 
+          title="Laptops" 
+          value={stats.byType.laptop} 
+          icon={<Laptop className="h-6 w-6" />}
+          onClick={() => navigate('/assets/laptop')}
         />
         <StatCard 
-          title="In Maintenance" 
-          value={stats.byStatus.maintenance} 
-          description="being repaired or serviced" 
-          icon={<AlertTriangle size={20} />} 
+          title="Licencias" 
+          value={stats.byType.license} 
+          icon={<FileText className="h-6 w-6" />}
+          onClick={() => navigate('/assets/license')}
         />
       </div>
-      
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="md:col-span-1">
           <CardHeader>
-            <CardTitle>Asset Distribution by Type</CardTitle>
+            <CardTitle>Distribución por Tipo</CardTitle>
           </CardHeader>
           <CardContent>
-            <AssetDistributionChart data={typeChartData} />
+            <AssetDistributionChart data={Object.entries(stats.byType).map(([name, value]) => ({ name, value }))} />
           </CardContent>
         </Card>
         
-        <Card>
+        <Card className="md:col-span-1">
           <CardHeader>
-            <CardTitle>Asset Status</CardTitle>
+            <CardTitle>Distribución por Estado</CardTitle>
           </CardHeader>
           <CardContent>
-            <AssetDistributionChart data={statusChartData} />
+            <AssetDistributionChart 
+              data={[
+                { name: 'Disponible', value: stats.byStatus.available },
+                { name: 'Asignado', value: stats.byStatus.assigned },
+                { name: 'Mantenimiento', value: stats.byStatus.maintenance },
+                { name: 'Retirado', value: stats.byStatus.retired },
+              ]}
+            />
           </CardContent>
         </Card>
       </div>
-      
-      {/* Recently Updated Table */}
+
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Recently Updated Assets</CardTitle>
-          <Link to="/assets" className="text-sm text-blue-600 hover:underline">
-            View all
-          </Link>
+        <CardHeader>
+          <CardTitle>Activos actualizados recientemente</CardTitle>
         </CardHeader>
         <CardContent>
           <RecentlyUpdatedTable assets={stats.recentlyUpdated} />
