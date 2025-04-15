@@ -4,9 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { getAssetStatistics, Asset } from '@/lib/db';
 import StatCard from '@/components/StatCard';
-import AssetDistributionChart from '@/components/AssetDistributionChart';
+import AssetDistributionChart, { ChartData } from '@/components/AssetDistributionChart';
 import RecentlyUpdatedTable from '@/components/RecentlyUpdatedTable';
-import { LayoutDashboard, Monitor, Laptop, Users, FileText } from 'lucide-react';
+import { LayoutDashboard, Monitor, Laptop, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 // Define the structure of our stats state
@@ -35,6 +35,29 @@ interface StatsState {
   };
   recentlyUpdated: Asset[];
 }
+
+// Define chart colors
+const TYPE_COLORS = {
+  computer: '#0088FE',
+  laptop: '#00C49F',
+  monitor: '#FFBB28',
+  mouse: '#FF8042',
+  keyboard: '#A28DF0',
+  telephone: '#FF6E6E',
+  mobile: '#4BC0C0',
+  scanner: '#9966FF',
+  printer: '#FF9F7F',
+  cable: '#F17CB0',
+  license: '#B2B1CF',
+  other: '#60ACFC'
+};
+
+const STATUS_COLORS = {
+  available: '#4CAF50',
+  assigned: '#2196F3',
+  maintenance: '#FFC107',
+  retired: '#F44336'
+};
 
 const Dashboard = () => {
   const { toast } = useToast();
@@ -122,7 +145,13 @@ const Dashboard = () => {
             <CardTitle>Distribución por Tipo</CardTitle>
           </CardHeader>
           <CardContent>
-            <AssetDistributionChart data={Object.entries(stats.byType).map(([name, value]) => ({ name, value }))} />
+            <AssetDistributionChart 
+              data={Object.entries(stats.byType).map(([name, value]) => ({ 
+                name, 
+                value,
+                color: TYPE_COLORS[name as keyof typeof TYPE_COLORS] || '#CCCCCC'
+              }))} 
+            />
           </CardContent>
         </Card>
         
@@ -133,10 +162,10 @@ const Dashboard = () => {
           <CardContent>
             <AssetDistributionChart 
               data={[
-                { name: 'Disponible', value: stats.byStatus.available },
-                { name: 'Asignado', value: stats.byStatus.assigned },
-                { name: 'Mantenimiento', value: stats.byStatus.maintenance },
-                { name: 'Retirado', value: stats.byStatus.retired },
+                { name: 'Disponible', value: stats.byStatus.available, color: STATUS_COLORS.available },
+                { name: 'Asignado', value: stats.byStatus.assigned, color: STATUS_COLORS.assigned },
+                { name: 'Mantenimiento', value: stats.byStatus.maintenance, color: STATUS_COLORS.maintenance },
+                { name: 'Retirado', value: stats.byStatus.retired, color: STATUS_COLORS.retired },
               ]}
             />
           </CardContent>
