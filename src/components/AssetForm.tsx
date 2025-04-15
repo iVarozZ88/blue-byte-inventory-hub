@@ -32,6 +32,7 @@ const assetTypes: { value: AssetType; label: string }[] = [
   { value: 'scanner', label: 'Scanner' },
   { value: 'printer', label: 'Printer' },
   { value: 'cable', label: 'Cable' },
+  { value: 'license', label: 'License' },
   { value: 'other', label: 'Other' },
 ];
 
@@ -47,7 +48,12 @@ const AssetForm = ({ mode }: AssetFormProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [asset, setAsset] = useState<Partial<Asset>>({
+  const [asset, setAsset] = useState<Partial<Asset & {
+    operatingSystem?: string;
+    rental?: string;
+    deliveryNote?: string;
+    teamviewerId?: string;
+  }>>({
     name: '',
     type: 'computer',
     model: '',
@@ -55,7 +61,11 @@ const AssetForm = ({ mode }: AssetFormProps) => {
     purchaseDate: formatDate(new Date()),
     status: 'available',
     assignedTo: '',
-    notes: ''
+    notes: '',
+    operatingSystem: '',
+    rental: '',
+    deliveryNote: '',
+    teamviewerId: ''
   });
 
   const [loading, setLoading] = useState<boolean>(mode === 'edit');
@@ -70,7 +80,11 @@ const AssetForm = ({ mode }: AssetFormProps) => {
           const existingAsset = assets.find(a => a.id === id);
           
           if (existingAsset) {
-            setAsset(existingAsset);
+            setAsset({
+              ...existingAsset,
+              // Extract custom fields from the notes JSON if they exist
+              ...(existingAsset.notes ? tryParseCustomFields(existingAsset.notes) : {})
+            });
           } else {
             toast({
               title: "Asset not found",
@@ -94,6 +108,25 @@ const AssetForm = ({ mode }: AssetFormProps) => {
     
     loadAsset();
   }, [id, mode, navigate, toast]);
+
+  // Try to parse custom fields from notes JSON
+  const tryParseCustomFields = (notes: string) => {
+    try {
+      const parsedNotes = JSON.parse(notes);
+      if (typeof parsedNotes === 'object') {
+        return {
+          operatingSystem: parsedNotes.operatingSystem || '',
+          rental: parsedNotes.rental || '',
+          deliveryNote: parsedNotes.deliveryNote || '',
+          teamviewerId: parsedNotes.teamviewerId || '',
+          notes: parsedNotes.generalNotes || notes // Fallback to original notes
+        };
+      }
+    } catch (e) {
+      // If parsing fails, it's just regular notes
+    }
+    return { notes };
+  };
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -120,15 +153,37 @@ const AssetForm = ({ mode }: AssetFormProps) => {
 
     try {
       setSubmitting(true);
+
+      // For computer and laptop types, store additional fields in the notes as JSON
+      let finalAsset = { ...asset };
+      
+      if (asset.type === 'computer' || asset.type === 'laptop') {
+        // Extract custom fields to store in notes JSON
+        const { operatingSystem, rental, deliveryNote, teamviewerId, notes, ...standardAsset } = asset;
+        
+        // Combine custom fields with general notes in a JSON structure
+        const customFields = {
+          operatingSystem,
+          rental,
+          deliveryNote,
+          teamviewerId,
+          generalNotes: notes
+        };
+        
+        finalAsset = {
+          ...standardAsset,
+          notes: JSON.stringify(customFields)
+        };
+      }
       
       if (mode === 'create') {
-        const newAsset = await addAsset(asset as Omit<Asset, 'id' | 'lastUpdated'>);
+        const newAsset = await addAsset(finalAsset as Omit<Asset, 'id' | 'lastUpdated'>);
         toast({
           title: "Asset created",
           description: `${newAsset.name} has been added to inventory.`,
         });
       } else if (mode === 'edit' && id) {
-        const updatedAsset = await updateAsset(asset as Asset);
+        const updatedAsset = await updateAsset({...(finalAsset as Asset), id});
         toast({
           title: "Asset updated",
           description: `${updatedAsset.name} has been updated.`,
@@ -156,6 +211,9 @@ const AssetForm = ({ mode }: AssetFormProps) => {
       </div>
     );
   }
+
+  // Check if asset type is computer or laptop to show additional fields
+  const isComputerOrLaptop = asset.type === 'computer' || asset.type === 'laptop';
 
   return (
     <Card className="w-full max-w-3xl mx-auto">
@@ -221,6 +279,58 @@ const AssetForm = ({ mode }: AssetFormProps) => {
               />
             </div>
           </div>
+          
+          {isComputerOrLaptop && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="operatingSystem">Operating System</Label>
+                  <Input 
+                    id="operatingSystem" 
+                    name="operatingSystem" 
+                    value={asset.operatingSystem || ''} 
+                    onChange={handleInputChange}
+                    placeholder="e.g. Windows 10 Pro"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="teamviewerId">Teamviewer ID</Label>
+                  <Input 
+                    id="teamviewerId" 
+                    name="teamviewerId" 
+                    value={asset.teamviewerId || ''} 
+                    onChange={handleInputChange}
+                    placeholder="e.g. 123 456 789"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="rental">Rental</Label>
+                  <Input 
+                    id="rental" 
+                    name="rental" 
+                    value={asset.rental || ''} 
+                    onChange={handleInputChange}
+                    placeholder="e.g. Monthly rental"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="deliveryNote">Delivery Note</Label>
+                  <Input 
+                    id="deliveryNote" 
+                    name="deliveryNote" 
+                    value={asset.deliveryNote || ''} 
+                    onChange={handleInputChange}
+                    placeholder="e.g. DN-12345"
+                  />
+                </div>
+              </div>
+            </>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
