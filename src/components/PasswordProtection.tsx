@@ -5,9 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/context/AuthContext';
 
 const CORRECT_PASSWORD = "Inventory@@12345@";
-const PASSWORD_STORAGE_KEY = "inventory-app-authenticated";
 
 const PasswordProtection = () => {
   const [password, setPassword] = useState("");
@@ -15,32 +15,27 @@ const PasswordProtection = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
-
+  const { isAuthenticated, login } = useAuth();
+  
   useEffect(() => {
     // Check if user is already authenticated
-    const isAuthenticated = localStorage.getItem(PASSWORD_STORAGE_KEY) === "true";
     if (isAuthenticated) {
-      // If authenticated, redirect to the intended page
-      if (location.pathname === "/login") {
-        navigate("/");
-      }
+      // Redirect to home or the page they were trying to access
+      const from = location.state?.from?.pathname || "/";
+      navigate(from, { replace: true });
     }
-  }, [navigate, location.pathname]);
+  }, [isAuthenticated, navigate, location]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (password === CORRECT_PASSWORD) {
-      // Store authentication status
-      localStorage.setItem(PASSWORD_STORAGE_KEY, "true");
+      login();
       
       toast({
         title: "Acceso correcto",
         description: "Bienvenido al sistema de inventario",
       });
-      
-      // Redirect to home page
-      navigate("/");
     } else {
       setError(true);
       toast({

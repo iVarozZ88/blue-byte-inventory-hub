@@ -5,6 +5,7 @@ const PASSWORD_STORAGE_KEY = "inventory-app-authenticated";
 
 type AuthContextType = {
   isAuthenticated: boolean;
+  login: () => void;
   logout: () => void;
 };
 
@@ -19,13 +20,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsAuthenticated(authStatus);
   }, []);
 
+  const login = () => {
+    localStorage.setItem(PASSWORD_STORAGE_KEY, "true");
+    setIsAuthenticated(true);
+  };
+
   const logout = () => {
     localStorage.removeItem(PASSWORD_STORAGE_KEY);
     setIsAuthenticated(false);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
