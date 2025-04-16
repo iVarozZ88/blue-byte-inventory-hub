@@ -1,4 +1,4 @@
-
+import React from 'react';
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Asset, deleteAsset } from '@/lib/db';
@@ -129,7 +129,6 @@ const AssetDetail = () => {
     }
   };
 
-  // Missing import
   const getAssets = async () => {
     const { getAssets } = await import('@/lib/db');
     return getAssets();
@@ -187,7 +186,7 @@ const AssetDetail = () => {
         <div className="space-y-1">
           <p className="text-sm text-muted-foreground">Notas</p>
           <div className="bg-muted p-3 rounded-md">
-            <p>{asset.notes || 'Sin notas'}</p>
+            <p className="whitespace-pre-wrap">{asset.notes || 'Sin notas'}</p>
           </div>
         </div>
         
