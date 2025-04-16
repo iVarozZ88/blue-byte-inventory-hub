@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Asset, AssetType, getAssets } from '@/lib/db';
@@ -85,13 +86,37 @@ const AssetsList = ({ preFilteredAssets }: { preFilteredAssets?: Asset[] }) => {
 
   useEffect(() => {
     if (preFilteredAssets) {
-      setAssets(preFilteredAssets);
-      applyFilters(preFilteredAssets, searchTerm, statusFilter);
+      const sortedAssets = sortAssets(preFilteredAssets);
+      setAssets(sortedAssets);
+      applyFilters(sortedAssets, searchTerm, statusFilter);
       setLoading(false);
     } else {
       loadAssets();
     }
   }, [type, preFilteredAssets, searchTerm, statusFilter]);
+
+  // Sort function for assets - alphabetically, then numerically
+  const sortAssets = (assetList: Asset[]): Asset[] => {
+    return [...assetList].sort((a, b) => {
+      // Extract the non-numeric part (prefix) and the numeric part (suffix)
+      const aMatch = a.name.match(/^([^\d]*)(\d*)$/);
+      const bMatch = b.name.match(/^([^\d]*)(\d*)$/);
+      
+      if (!aMatch || !bMatch) return a.name.localeCompare(b.name);
+      
+      const [, aPrefix, aSuffix] = aMatch;
+      const [, bPrefix, bSuffix] = bMatch;
+      
+      // First compare the prefixes alphabetically
+      const prefixComparison = aPrefix.localeCompare(bPrefix);
+      if (prefixComparison !== 0) return prefixComparison;
+      
+      // If prefixes are the same, compare the numeric parts
+      const aNum = aSuffix ? parseInt(aSuffix, 10) : 0;
+      const bNum = bSuffix ? parseInt(bSuffix, 10) : 0;
+      return aNum - bNum;
+    });
+  };
 
   const loadAssets = async () => {
     setLoading(true);
@@ -101,9 +126,10 @@ const AssetsList = ({ preFilteredAssets }: { preFilteredAssets?: Asset[] }) => {
       const typeFilteredAssets = type 
         ? allAssets.filter(asset => asset.type === type) 
         : allAssets;
-        
-      setAssets(typeFilteredAssets);
-      applyFilters(typeFilteredAssets, searchTerm, statusFilter);
+      
+      const sortedAssets = sortAssets(typeFilteredAssets);
+      setAssets(sortedAssets);
+      applyFilters(sortedAssets, searchTerm, statusFilter);
     } catch (error) {
       console.error('Error loading assets:', error);
       toast({
