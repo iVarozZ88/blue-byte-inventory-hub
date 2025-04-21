@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { 
   Dialog, 
@@ -16,7 +15,6 @@ import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { FileText, Upload, FolderPlus, FilePlus2 } from 'lucide-react';
 
-// Password for admin access
 const ADMIN_PASSWORD = 'Inventory@@12345@';
 
 const AdminPage = () => {
@@ -46,6 +44,17 @@ const AdminPage = () => {
     }
   };
 
+  const ensureBucketExists = async () => {
+    const { data: buckets, error } = await supabase.storage.listBuckets();
+    if (error) throw error;
+    if (!buckets?.find(bucket => bucket.name === "admin-docs")) {
+      const { error: createError } = await supabase.storage.createBucket("admin-docs", { public: false });
+      if (createError && !createError.message.includes('duplicate')) {
+        throw createError;
+      }
+    }
+  };
+
   const handleAddDocument = async () => {
     if (!newDocument.name) {
       toast({
@@ -57,36 +66,41 @@ const AdminPage = () => {
     }
 
     try {
-      // Create a text file in Supabase Storage
+      await ensureBucketExists();
       const fileName = `${newDocument.name}.txt`;
-      
-      // First ensure admin-docs bucket exists
-      const { data: buckets } = await supabase.storage.listBuckets();
-      if (!buckets?.find(bucket => bucket.name === 'admin-docs')) {
-        await supabase.storage.createBucket('admin-docs', {
-          public: false
+
+      const { data: listFiles, error: listFilesErr } = await supabase
+        .storage
+        .from("admin-docs")
+        .list("", { search: fileName });
+      if (listFilesErr) throw listFilesErr;
+
+      if (listFiles && listFiles.find(file => file.name === fileName)) {
+        toast({
+          title: "Archivo existente",
+          description: `Ya hay un documento llamado "${fileName}". Usa otro nombre.`,
+          variant: "destructive"
         });
+        return;
       }
-      
-      const { error } = await supabase.storage
-        .from('admin-docs')
-        .upload(fileName, new Blob([newDocument.content], { type: 'text/plain' }));
-      
-      if (error) throw error;
-      
-      // Reset form
+
+      const blob = new Blob([newDocument.content], { type: "text/plain" });
+      const { error: uploadError } = await supabase.storage
+        .from("admin-docs")
+        .upload(fileName, blob);
+      if (uploadError) throw uploadError;
+
       setNewDocument({ name: '', content: '' });
       setShowNewDocument(false);
-      
       toast({
         title: "Documento creado",
         description: `Se ha creado el documento "${fileName}".`
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating document:', error);
       toast({
         title: "Error",
-        description: "No se pudo crear el documento.",
+        description: error?.message || "No se pudo crear el documento.",
         variant: "destructive"
       });
     }
@@ -95,36 +109,43 @@ const AdminPage = () => {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    
+    let successCount = 0;
     try {
-      // Ensure admin-docs bucket exists
-      const { data: buckets } = await supabase.storage.listBuckets();
-      if (!buckets?.find(bucket => bucket.name === 'admin-docs')) {
-        await supabase.storage.createBucket('admin-docs', {
-          public: false
-        });
-      }
-
+      await ensureBucketExists();
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        
-        // Upload file to Supabase Storage
-        const { error } = await supabase.storage
-          .from('admin-docs')
+        const { data: listFiles, error: listFilesErr } = await supabase
+          .storage
+          .from("admin-docs")
+          .list("", { search: file.name });
+        if (listFilesErr) throw listFilesErr;
+
+        if (listFiles && listFiles.find(f => f.name === file.name)) {
+          toast({
+            title: "Archivo existente",
+            description: `Ya existe un archivo llamado "${file.name}", omitiendo.`,
+            variant: "destructive"
+          });
+          continue;
+        }
+
+        const { error: uploadError } = await supabase.storage
+          .from("admin-docs")
           .upload(file.name, file);
-        
-        if (error) throw error;
+        if (uploadError) throw uploadError;
+        successCount++;
       }
-      
-      toast({
-        title: "Archivos subidos",
-        description: `Se subieron ${files.length} archivo(s) correctamente.`
-      });
-    } catch (error) {
+      if (successCount > 0) {
+        toast({
+          title: "Archivos subidos",
+          description: `Se subieron ${successCount} archivo(s) correctamente.`
+        });
+      }
+    } catch (error: any) {
       console.error('Error uploading files:', error);
       toast({
         title: "Error de subida",
-        description: "No se pudieron subir los archivos.",
+        description: error?.message || "No se pudieron subir los archivos.",
         variant: "destructive"
       });
     }
