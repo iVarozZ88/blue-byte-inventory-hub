@@ -45,13 +45,44 @@ const AdminPage = () => {
   };
 
   const ensureBucketExists = async () => {
-    const { data: buckets, error } = await supabase.storage.listBuckets();
-    if (error) throw error;
-    if (!buckets?.find(bucket => bucket.name === "admin-docs")) {
-      const { error: createError } = await supabase.storage.createBucket("admin-docs", { public: false });
-      if (createError && !createError.message.includes('duplicate')) {
-        throw createError;
+    try {
+      const { data: buckets, error } = await supabase.storage.listBuckets();
+      if (error) {
+        console.error('Error listing buckets:', error);
+        throw error;
       }
+      
+      if (!buckets?.find(bucket => bucket.name === "admin-docs")) {
+        const { error: createError } = await supabase.storage.createBucket("admin-docs", { 
+          public: true
+        });
+        
+        if (createError) {
+          if (!createError.message.includes('duplicate')) {
+            console.error('Error creating bucket:', createError);
+            throw createError;
+          }
+        } else {
+          await setPublicBucketPolicy();
+        }
+      }
+    } catch (error) {
+      console.error('Error ensuring bucket exists:', error);
+      throw error;
+    }
+  };
+
+  const setPublicBucketPolicy = async () => {
+    try {
+      const { error: policyError } = await supabase.storage
+        .from('admin-docs')
+        .createSignedUrl('policy.txt', 60);
+      
+      if (policyError && !policyError.message.includes('does not exist')) {
+        console.error('Error setting bucket policy:', policyError);
+      }
+    } catch (error) {
+      console.error('Error setting public policy:', error);
     }
   };
 
@@ -69,26 +100,35 @@ const AdminPage = () => {
       await ensureBucketExists();
       const fileName = `${newDocument.name}.txt`;
 
-      const { data: listFiles, error: listFilesErr } = await supabase
-        .storage
-        .from("admin-docs")
-        .list("", { search: fileName });
-      if (listFilesErr) throw listFilesErr;
-
-      if (listFiles && listFiles.find(file => file.name === fileName)) {
-        toast({
-          title: "Archivo existente",
-          description: `Ya hay un documento llamado "${fileName}". Usa otro nombre.`,
-          variant: "destructive"
-        });
-        return;
+      try {
+        const { data: existingFile } = await supabase.storage
+          .from("admin-docs")
+          .getPublicUrl(fileName);
+          
+        if (existingFile?.publicUrl) {
+          toast({
+            title: "Archivo existente",
+            description: `Ya hay un documento llamado "${fileName}". Usa otro nombre.`,
+            variant: "destructive"
+          });
+          return;
+        }
+      } catch (error) {
+        console.log('File does not exist yet, proceeding with upload');
       }
 
       const blob = new Blob([newDocument.content], { type: "text/plain" });
       const { error: uploadError } = await supabase.storage
         .from("admin-docs")
-        .upload(fileName, blob);
-      if (uploadError) throw uploadError;
+        .upload(fileName, blob, {
+          cacheControl: '3600',
+          upsert: false
+        });
+        
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
+      }
 
       setNewDocument({ name: '', content: '' });
       setShowNewDocument(false);
@@ -100,7 +140,7 @@ const AdminPage = () => {
       console.error('Error creating document:', error);
       toast({
         title: "Error",
-        description: error?.message || "No se pudo crear el documento.",
+        description: error?.message || "No se pudo crear el documento. Verifica los permisos de acceso.",
         variant: "destructive"
       });
     }
@@ -110,31 +150,50 @@ const AdminPage = () => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     let successCount = 0;
+    
     try {
       await ensureBucketExists();
+      
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const { data: listFiles, error: listFilesErr } = await supabase
-          .storage
-          .from("admin-docs")
-          .list("", { search: file.name });
-        if (listFilesErr) throw listFilesErr;
-
-        if (listFiles && listFiles.find(f => f.name === file.name)) {
-          toast({
-            title: "Archivo existente",
-            description: `Ya existe un archivo llamado "${file.name}", omitiendo.`,
-            variant: "destructive"
-          });
-          continue;
+        
+        try {
+          const { data: existingFile } = await supabase.storage
+            .from("admin-docs")
+            .getPublicUrl(file.name);
+            
+          if (existingFile?.publicUrl) {
+            toast({
+              title: "Archivo existente",
+              description: `Ya existe un archivo llamado "${file.name}", omitiendo.`,
+              variant: "destructive"
+            });
+            continue;
+          }
+        } catch (error) {
+          console.log('File does not exist yet, proceeding with upload');
         }
 
         const { error: uploadError } = await supabase.storage
           .from("admin-docs")
-          .upload(file.name, file);
-        if (uploadError) throw uploadError;
+          .upload(file.name, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+          
+        if (uploadError) {
+          console.error('Upload error for file:', file.name, uploadError);
+          toast({
+            title: "Error al subir",
+            description: `No se pudo subir "${file.name}": ${uploadError.message}`,
+            variant: "destructive"
+          });
+          continue;
+        }
+        
         successCount++;
       }
+      
       if (successCount > 0) {
         toast({
           title: "Archivos subidos",
