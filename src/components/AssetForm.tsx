@@ -121,22 +121,22 @@ const AssetForm = ({ mode }: AssetFormProps) => {
     try {
       const parsedNotes = JSON.parse(notes);
       if (typeof parsedNotes === 'object') {
-        if (parsedNotes.operatingSystem) {
+        if (parsedNotes.operatingSystem !== undefined) {
           return {
             operatingSystem: parsedNotes.operatingSystem || '',
             rental: parsedNotes.rental || '',
             deliveryNote: parsedNotes.deliveryNote || '',
             teamviewerId: parsedNotes.teamviewerId || '',
-            notes: parsedNotes.generalNotes || notes
+            notes: parsedNotes.generalNotes || ''
           };
-        } else {
+        } else if (parsedNotes.phoneNumber !== undefined) {
           return {
             phoneNumber: parsedNotes.phoneNumber || '',
             pin: parsedNotes.pin || '',
             puk: parsedNotes.puk || '',
             imei1: parsedNotes.imei1 || '',
             imei2: parsedNotes.imei2 || '',
-            notes: parsedNotes.generalNotes || notes
+            notes: parsedNotes.generalNotes || ''
           };
         }
       }
@@ -176,30 +176,34 @@ const AssetForm = ({ mode }: AssetFormProps) => {
       
       if (asset.type === 'computer' || asset.type === 'laptop') {
         const { operatingSystem, rental, deliveryNote, teamviewerId, notes, ...standardAsset } = asset;
-        const customFields = {
-          operatingSystem,
-          rental,
-          deliveryNote,
-          teamviewerId,
-          generalNotes: notes
-        };
+        
+        const customFields: Record<string, string> = {};
+        if (operatingSystem) customFields.operatingSystem = operatingSystem;
+        if (rental) customFields.rental = rental;
+        if (deliveryNote) customFields.deliveryNote = deliveryNote;
+        if (teamviewerId) customFields.teamviewerId = teamviewerId;
+        if (notes) customFields.generalNotes = notes;
+        
+        const hasCustomFields = Object.keys(customFields).length > 0;
         finalAsset = {
           ...standardAsset,
-          notes: JSON.stringify(customFields)
+          notes: hasCustomFields ? JSON.stringify(customFields) : notes || ''
         };
       } else if (asset.type === 'mobile') {
         const { phoneNumber, pin, puk, imei1, imei2, notes, ...standardAsset } = asset;
-        const customFields = {
-          phoneNumber,
-          pin,
-          puk,
-          imei1,
-          imei2,
-          generalNotes: notes
-        };
+        
+        const customFields: Record<string, string> = {};
+        if (phoneNumber) customFields.phoneNumber = phoneNumber;
+        if (pin) customFields.pin = pin;
+        if (puk) customFields.puk = puk;
+        if (imei1) customFields.imei1 = imei1;
+        if (imei2) customFields.imei2 = imei2;
+        if (notes) customFields.generalNotes = notes;
+        
+        const hasCustomFields = Object.keys(customFields).length > 0;
         finalAsset = {
           ...standardAsset,
-          notes: JSON.stringify(customFields)
+          notes: hasCustomFields ? JSON.stringify(customFields) : notes || ''
         };
       }
       
