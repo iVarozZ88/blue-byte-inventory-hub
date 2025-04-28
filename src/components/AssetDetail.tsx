@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -40,6 +41,7 @@ const AssetDetail = () => {
   const [asset, setAsset] = useState<Asset | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [parsedNotes, setParsedNotes] = useState<{ generalNotes?: string; [key: string]: any } | null>(null);
 
   useEffect(() => {
     const loadAsset = async () => {
@@ -50,6 +52,19 @@ const AssetDetail = () => {
           
           if (foundAsset) {
             setAsset(foundAsset);
+            
+            // Try to parse notes as JSON
+            if (foundAsset.notes) {
+              try {
+                const parsed = JSON.parse(foundAsset.notes);
+                if (typeof parsed === 'object') {
+                  setParsedNotes(parsed);
+                }
+              } catch (e) {
+                // Not JSON, use as-is
+                setParsedNotes(null);
+              }
+            }
           } else {
             toast({
               title: "Activo no encontrado",
@@ -134,6 +149,94 @@ const AssetDetail = () => {
     return getAssets();
   };
 
+  const renderSpecificDetails = () => {
+    if (!asset || !parsedNotes) return null;
+    
+    if (asset.type === 'computer' || asset.type === 'laptop') {
+      return (
+        <div className="space-y-6 mt-4">
+          <h3 className="text-sm font-medium text-muted-foreground">Detalles adicionales</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {parsedNotes.operatingSystem && (
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Sistema Operativo</p>
+                <p className="font-medium">{parsedNotes.operatingSystem}</p>
+              </div>
+            )}
+            {parsedNotes.teamviewerId && (
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">ID de TeamViewer</p>
+                <p className="font-medium">{parsedNotes.teamviewerId}</p>
+              </div>
+            )}
+            {parsedNotes.rental && (
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Alquiler</p>
+                <p className="font-medium">{parsedNotes.rental}</p>
+              </div>
+            )}
+            {parsedNotes.deliveryNote && (
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Nota de entrega</p>
+                <p className="font-medium">{parsedNotes.deliveryNote}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    } else if (asset.type === 'mobile') {
+      return (
+        <div className="space-y-6 mt-4">
+          <h3 className="text-sm font-medium text-muted-foreground">Detalles del móvil</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {parsedNotes.phoneNumber && (
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Número de teléfono</p>
+                <p className="font-medium">{parsedNotes.phoneNumber}</p>
+              </div>
+            )}
+            {parsedNotes.pin && (
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">PIN</p>
+                <p className="font-medium">{parsedNotes.pin}</p>
+              </div>
+            )}
+            {parsedNotes.puk && (
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">PUK</p>
+                <p className="font-medium">{parsedNotes.puk}</p>
+              </div>
+            )}
+            {parsedNotes.imei1 && (
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">IMEI 1</p>
+                <p className="font-medium">{parsedNotes.imei1}</p>
+              </div>
+            )}
+            {parsedNotes.imei2 && (
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">IMEI 2</p>
+                <p className="font-medium">{parsedNotes.imei2}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+    
+    return null;
+  };
+
+  const getNotesContent = () => {
+    if (!asset) return 'Sin notas';
+    
+    if (parsedNotes) {
+      return parsedNotes.generalNotes || 'Sin notas';
+    }
+    
+    return asset.notes || 'Sin notas';
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-20">
@@ -183,10 +286,12 @@ const AssetDetail = () => {
           </div>
         </div>
         
+        {renderSpecificDetails()}
+        
         <div className="space-y-1">
           <p className="text-sm text-muted-foreground">Notas</p>
           <div className="bg-muted p-3 rounded-md">
-            <p className="whitespace-pre-wrap">{asset.notes || 'Sin notas'}</p>
+            <p className="whitespace-pre-wrap">{getNotesContent()}</p>
           </div>
         </div>
         

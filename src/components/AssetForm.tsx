@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Asset, AssetType, AssetStatus, addAsset, updateAsset, formatDate } from '@/lib/db';
@@ -53,6 +52,11 @@ const AssetForm = ({ mode }: AssetFormProps) => {
     rental?: string;
     deliveryNote?: string;
     teamviewerId?: string;
+    phoneNumber?: string;
+    pin?: string;
+    puk?: string;
+    imei1?: string;
+    imei2?: string;
   }>>({
     name: '',
     type: 'computer',
@@ -65,7 +69,12 @@ const AssetForm = ({ mode }: AssetFormProps) => {
     operatingSystem: '',
     rental: '',
     deliveryNote: '',
-    teamviewerId: ''
+    teamviewerId: '',
+    phoneNumber: '',
+    pin: '',
+    puk: '',
+    imei1: '',
+    imei2: ''
   });
 
   const [loading, setLoading] = useState<boolean>(mode === 'edit');
@@ -82,7 +91,6 @@ const AssetForm = ({ mode }: AssetFormProps) => {
           if (existingAsset) {
             setAsset({
               ...existingAsset,
-              // Extract custom fields from the notes JSON if they exist
               ...(existingAsset.notes ? tryParseCustomFields(existingAsset.notes) : {})
             });
           } else {
@@ -109,18 +117,28 @@ const AssetForm = ({ mode }: AssetFormProps) => {
     loadAsset();
   }, [id, mode, navigate, toast]);
 
-  // Try to parse custom fields from notes JSON
   const tryParseCustomFields = (notes: string) => {
     try {
       const parsedNotes = JSON.parse(notes);
       if (typeof parsedNotes === 'object') {
-        return {
-          operatingSystem: parsedNotes.operatingSystem || '',
-          rental: parsedNotes.rental || '',
-          deliveryNote: parsedNotes.deliveryNote || '',
-          teamviewerId: parsedNotes.teamviewerId || '',
-          notes: parsedNotes.generalNotes || notes // Fallback to original notes
-        };
+        if (parsedNotes.operatingSystem !== undefined) {
+          return {
+            operatingSystem: parsedNotes.operatingSystem || '',
+            rental: parsedNotes.rental || '',
+            deliveryNote: parsedNotes.deliveryNote || '',
+            teamviewerId: parsedNotes.teamviewerId || '',
+            notes: parsedNotes.generalNotes || ''
+          };
+        } else if (parsedNotes.phoneNumber !== undefined) {
+          return {
+            phoneNumber: parsedNotes.phoneNumber || '',
+            pin: parsedNotes.pin || '',
+            puk: parsedNotes.puk || '',
+            imei1: parsedNotes.imei1 || '',
+            imei2: parsedNotes.imei2 || '',
+            notes: parsedNotes.generalNotes || ''
+          };
+        }
       }
     } catch (e) {
       // If parsing fails, it's just regular notes
@@ -154,25 +172,38 @@ const AssetForm = ({ mode }: AssetFormProps) => {
     try {
       setSubmitting(true);
 
-      // For computer and laptop types, store additional fields in the notes as JSON
       let finalAsset = { ...asset };
       
       if (asset.type === 'computer' || asset.type === 'laptop') {
-        // Extract custom fields to store in notes JSON
         const { operatingSystem, rental, deliveryNote, teamviewerId, notes, ...standardAsset } = asset;
         
-        // Combine custom fields with general notes in a JSON structure
-        const customFields = {
-          operatingSystem,
-          rental,
-          deliveryNote,
-          teamviewerId,
-          generalNotes: notes
-        };
+        const customFields: Record<string, string> = {};
+        if (operatingSystem) customFields.operatingSystem = operatingSystem;
+        if (rental) customFields.rental = rental;
+        if (deliveryNote) customFields.deliveryNote = deliveryNote;
+        if (teamviewerId) customFields.teamviewerId = teamviewerId;
+        if (notes) customFields.generalNotes = notes;
         
+        const hasCustomFields = Object.keys(customFields).length > 0;
         finalAsset = {
           ...standardAsset,
-          notes: JSON.stringify(customFields)
+          notes: hasCustomFields ? JSON.stringify(customFields) : notes || ''
+        };
+      } else if (asset.type === 'mobile') {
+        const { phoneNumber, pin, puk, imei1, imei2, notes, ...standardAsset } = asset;
+        
+        const customFields: Record<string, string> = {};
+        if (phoneNumber) customFields.phoneNumber = phoneNumber;
+        if (pin) customFields.pin = pin;
+        if (puk) customFields.puk = puk;
+        if (imei1) customFields.imei1 = imei1;
+        if (imei2) customFields.imei2 = imei2;
+        if (notes) customFields.generalNotes = notes;
+        
+        const hasCustomFields = Object.keys(customFields).length > 0;
+        finalAsset = {
+          ...standardAsset,
+          notes: hasCustomFields ? JSON.stringify(customFields) : notes || ''
         };
       }
       
@@ -212,8 +243,8 @@ const AssetForm = ({ mode }: AssetFormProps) => {
     );
   }
 
-  // Check if asset type is computer or laptop to show additional fields
   const isComputerOrLaptop = asset.type === 'computer' || asset.type === 'laptop';
+  const isMobilePhone = asset.type === 'mobile';
 
   return (
     <Card className="w-full max-w-3xl mx-auto">
@@ -326,6 +357,71 @@ const AssetForm = ({ mode }: AssetFormProps) => {
                     value={asset.deliveryNote || ''} 
                     onChange={handleInputChange}
                     placeholder="e.g. DN-12345"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          {isMobilePhone && (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="phoneNumber">Phone Number</Label>
+                  <Input 
+                    id="phoneNumber" 
+                    name="phoneNumber" 
+                    value={asset.phoneNumber || ''} 
+                    onChange={handleInputChange}
+                    placeholder="e.g. +34 612345678"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="pin">PIN</Label>
+                  <Input 
+                    id="pin" 
+                    name="pin" 
+                    value={asset.pin || ''} 
+                    onChange={handleInputChange}
+                    placeholder="e.g. 1234"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="puk">PUK</Label>
+                  <Input 
+                    id="puk" 
+                    name="puk" 
+                    value={asset.puk || ''} 
+                    onChange={handleInputChange}
+                    placeholder="e.g. 12345678"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="imei1">IMEI 1</Label>
+                  <Input 
+                    id="imei1" 
+                    name="imei1" 
+                    value={asset.imei1 || ''} 
+                    onChange={handleInputChange}
+                    placeholder="e.g. 123456789012345"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="imei2">IMEI 2</Label>
+                  <Input 
+                    id="imei2" 
+                    name="imei2" 
+                    value={asset.imei2 || ''} 
+                    onChange={handleInputChange}
+                    placeholder="e.g. 123456789012345"
                   />
                 </div>
               </div>
