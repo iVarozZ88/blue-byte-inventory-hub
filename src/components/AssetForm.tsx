@@ -42,6 +42,12 @@ const assetStatuses: { value: AssetStatus; label: string }[] = [
   { value: 'retired', label: 'Retired' },
 ];
 
+// Opciones para la ubicación
+const assetLocations: { value: 'spain' | 'latam'; label: string }[] = [
+  { value: 'spain', label: 'España' },
+  { value: 'latam', label: 'LATAM (Rep. Dominicana)' },
+];
+
 const AssetForm = ({ mode }: AssetFormProps) => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -65,6 +71,7 @@ const AssetForm = ({ mode }: AssetFormProps) => {
     purchaseDate: formatDate(new Date()),
     status: 'available',
     assignedTo: '',
+    location: 'spain', // <-- ¡AÑADIDO: Valor por defecto para la ubicación!
     notes: '',
     operatingSystem: '',
     rental: '',
@@ -85,7 +92,9 @@ const AssetForm = ({ mode }: AssetFormProps) => {
       if (mode === 'edit' && id) {
         try {
           const { getAssets } = await import('@/lib/db');
-          const assets = await getAssets();
+          // getAssets ahora acepta un filtro de ubicación, pero aquí queremos TODOS para encontrar por ID
+          // Si tienes un getAssetById, sería mejor usarlo aquí.
+          const assets = await getAssets(null); // Pasa null para obtener todos sin filtro de ubicación inicial
           const existingAsset = assets.find(a => a.id === id);
           
           if (existingAsset) {
@@ -111,6 +120,8 @@ const AssetForm = ({ mode }: AssetFormProps) => {
         } finally {
           setLoading(false);
         }
+      } else {
+        setLoading(false); // Si es modo 'create', no hay carga inicial
       }
     };
     
@@ -121,13 +132,16 @@ const AssetForm = ({ mode }: AssetFormProps) => {
     try {
       const parsedNotes = JSON.parse(notes);
       if (typeof parsedNotes === 'object') {
+        // Asegúrate de que los campos específicos de cada tipo sean manejados
+        // y que 'generalNotes' sea usado para el campo 'notes' principal
+        const commonNotes = parsedNotes.generalNotes || '';
         if (parsedNotes.operatingSystem !== undefined) {
           return {
             operatingSystem: parsedNotes.operatingSystem || '',
             rental: parsedNotes.rental || '',
             deliveryNote: parsedNotes.deliveryNote || '',
             teamviewerId: parsedNotes.teamviewerId || '',
-            notes: parsedNotes.generalNotes || ''
+            notes: commonNotes // Usa generalNotes para el campo 'notes'
           };
         } else if (parsedNotes.phoneNumber !== undefined) {
           return {
@@ -136,14 +150,14 @@ const AssetForm = ({ mode }: AssetFormProps) => {
             puk: parsedNotes.puk || '',
             imei1: parsedNotes.imei1 || '',
             imei2: parsedNotes.imei2 || '',
-            notes: parsedNotes.generalNotes || ''
+            notes: commonNotes // Usa generalNotes para el campo 'notes'
           };
         }
       }
     } catch (e) {
       // If parsing fails, it's just regular notes
     }
-    return { notes };
+    return { notes }; // Si no es JSON o no coincide, devuelve las notas tal cual
   };
 
   const handleInputChange = (
@@ -160,10 +174,10 @@ const AssetForm = ({ mode }: AssetFormProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!asset.name || !asset.type || !asset.status) {
+    if (!asset.name || !asset.type || !asset.status || !asset.location) { // <-- ¡AÑADIDO: Validación para location!
       toast({
         title: "Missing information",
-        description: "Please fill in all required fields.",
+        description: "Please fill in all required fields (Name, Type, Status, Location).",
         variant: "destructive",
       });
       return;
@@ -172,56 +186,66 @@ const AssetForm = ({ mode }: AssetFormProps) => {
     try {
       setSubmitting(true);
 
-      let finalAsset = { ...asset };
+      let finalAsset: Partial<Asset> = { ...asset };
       
+      // Manejo de campos personalizados y notas
+      const customFields: Record<string, string> = {};
+      // Siempre incluye las notas generales
+      if (asset.notes) customFields.generalNotes = asset.notes;
+
       if (asset.type === 'computer' || asset.type === 'laptop') {
-        const { operatingSystem, rental, deliveryNote, teamviewerId, notes, ...standardAsset } = asset;
+        if (asset.operatingSystem) customFields.operatingSystem = asset.operatingSystem;
+        if (asset.rental) customFields.rental = asset.rental;
+        if (asset.deliveryNote) customFields.deliveryNote = asset.deliveryNote;
+        if (asset.teamviewerId) customFields.teamviewerId = asset.teamviewerId;
         
-        const customFields: Record<string, string> = {};
-        if (operatingSystem) customFields.operatingSystem = operatingSystem;
-        if (rental) customFields.rental = rental;
-        if (deliveryNote) customFields.deliveryNote = deliveryNote;
-        if (teamviewerId) customFields.teamviewerId = teamviewerId;
-        if (notes) customFields.generalNotes = notes;
-        
-        const hasCustomFields = Object.keys(customFields).length > 0;
+        // Excluye los campos específicos del objeto principal para no guardarlos directamente en la tabla
+        const { operatingSystem, rental, deliveryNote, teamviewerId, phoneNumber, pin, puk, imei1, imei2, ...standardAsset } = asset;
         finalAsset = {
           ...standardAsset,
-          notes: hasCustomFields ? JSON.stringify(customFields) : notes || ''
-        };
+          notes: Object.keys(customFields).length > 0 ? JSON.stringify(customFields) : '',
+          location: asset.location, // Aseguramos que location se mantenga
+        } as Partial<Asset>; // Cast para satisfacer TypeScript
       } else if (asset.type === 'mobile') {
-        const { phoneNumber, pin, puk, imei1, imei2, notes, ...standardAsset } = asset;
-        
-        const customFields: Record<string, string> = {};
-        if (phoneNumber) customFields.phoneNumber = phoneNumber;
-        if (pin) customFields.pin = pin;
-        if (puk) customFields.puk = puk;
-        if (imei1) customFields.imei1 = imei1;
-        if (imei2) customFields.imei2 = imei2;
-        if (notes) customFields.generalNotes = notes;
-        
-        const hasCustomFields = Object.keys(customFields).length > 0;
+        if (asset.phoneNumber) customFields.phoneNumber = asset.phoneNumber;
+        if (asset.pin) customFields.pin = asset.pin;
+        if (asset.puk) customFields.puk = asset.puk;
+        if (asset.imei1) customFields.imei1 = asset.imei1;
+        if (asset.imei2) customFields.imei2 = asset.imei2;
+
+        const { phoneNumber, pin, puk, imei1, imei2, operatingSystem, rental, deliveryNote, teamviewerId, ...standardAsset } = asset;
         finalAsset = {
           ...standardAsset,
-          notes: hasCustomFields ? JSON.stringify(customFields) : notes || ''
-        };
+          notes: Object.keys(customFields).length > 0 ? JSON.stringify(customFields) : '',
+          location: asset.location, // Aseguramos que location se mantenga
+        } as Partial<Asset>; // Cast para satisfacer TypeScript
+      } else {
+        // Para otros tipos, solo serializamos las notas si existen
+        const { operatingSystem, rental, deliveryNote, teamviewerId, phoneNumber, pin, puk, imei1, imei2, ...standardAsset } = asset;
+        finalAsset = {
+            ...standardAsset,
+            notes: asset.notes || '', // Si no hay campos personalizados, las notas van directamente
+            location: asset.location,
+        } as Partial<Asset>;
       }
       
       if (mode === 'create') {
+        // Asegúrate de que addAsset reciba el tipo correcto
         const newAsset = await addAsset(finalAsset as Omit<Asset, 'id' | 'lastUpdated'>);
         toast({
           title: "Asset created",
           description: `${newAsset.name} has been added to inventory.`,
         });
       } else if (mode === 'edit' && id) {
-        const updatedAsset = await updateAsset({...(finalAsset as Asset), id});
+        // Asegúrate de que updateAsset reciba el tipo correcto y el ID
+        const updatedAsset = await updateAsset({...finalAsset as Asset, id});
         toast({
           title: "Asset updated",
           description: `${updatedAsset.name} has been updated.`,
         });
       }
       
-      navigate('/');
+      navigate('/'); // Redirigir al dashboard después de guardar
     } catch (error) {
       console.error('Error saving asset:', error);
       toast({
@@ -259,7 +283,7 @@ const AssetForm = ({ mode }: AssetFormProps) => {
               <Input 
                 id="name" 
                 name="name" 
-                value={asset.name} 
+                value={asset.name || ''} // Asegura un string vacío si es null/undefined
                 onChange={handleInputChange}
                 placeholder="e.g. Dell XPS 15"
                 required
@@ -454,6 +478,29 @@ const AssetForm = ({ mode }: AssetFormProps) => {
                   {assetStatuses.map((status) => (
                     <SelectItem key={status.value} value={status.value}>
                       {status.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* ¡NUEVO CAMPO DE UBICACIÓN! */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="location">Ubicación*</Label>
+              <Select
+                name="location"
+                value={asset.location || 'spain'} // Asegura un valor por defecto
+                onValueChange={(value) => handleSelectChange('location', value)}
+              >
+                <SelectTrigger id="location">
+                  <SelectValue placeholder="Selecciona una ubicación" />
+                </SelectTrigger>
+                <SelectContent>
+                  {assetLocations.map((location) => (
+                    <SelectItem key={location.value} value={location.value}>
+                      {location.label}
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
 
-const ADMIN_PASSWORD = "Inventory@@12345@";
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
 const SESSION_KEY = "app_is_authenticated";
 
 export default function LoginGate({ children }: { children: React.ReactNode }) {

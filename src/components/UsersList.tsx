@@ -1,7 +1,7 @@
-
+// src/components/UsersList.tsx
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getUsers } from '@/lib/db';
+import { getUsers } from '@/lib/db'; // Asumimos que getUsers puede ser modificado para aceptar 'location'
 import { Input } from '@/components/ui/input';
 import {
   Table,
@@ -13,7 +13,13 @@ import {
 } from '@/components/ui/table';
 import { Search, UserCircle, Loader2 } from 'lucide-react';
 
-const UsersList = () => {
+// ¡¡IMPORTANTE!! Define la interfaz de props que este componente UsersList va a recibir.
+interface UsersListProps {
+  currentLocation: 'spain' | 'latam' | null;
+}
+
+// El componente UsersList ahora acepta 'currentLocation' como una prop.
+const UsersList: React.FC<UsersListProps> = ({ currentLocation }) => {
   const [users, setUsers] = useState<string[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -21,11 +27,14 @@ const UsersList = () => {
 
   useEffect(() => {
     const loadUsers = async () => {
+      setLoading(true); // Siempre poner loading a true al iniciar la carga
       try {
-        // Get all unique users with assigned assets
-        const allUsers = await getUsers();
+        // Modificamos getUsers para que acepte la ubicación.
+        // ¡Recordatorio: debes adaptar tu función getUsers en src/lib/db.ts para que realmente filtre por esta ubicación!
+        const allUsers = await getUsers(currentLocation); // Pasamos currentLocation
         setUsers(allUsers);
         setFilteredUsers(allUsers);
+        console.log(`[UsersList] Usuarios cargados para la ubicación: ${currentLocation}`); // Para depuración
       } catch (error) {
         console.error("Error loading users:", error);
       } finally {
@@ -33,8 +42,19 @@ const UsersList = () => {
       }
     };
     
-    loadUsers();
-  }, []);
+    // Solo carga usuarios si hay una ubicación seleccionada.
+    if (currentLocation) {
+      loadUsers();
+    } else {
+      // Si currentLocation es null (ej. antes de seleccionar una ubicación inicial si no se inicializa),
+      // puedes decidir si mostrar una lista vacía, un mensaje, o cargar todos los usuarios.
+      // Por ahora, lo dejaremos en cargando y luego vacío.
+      setLoading(false);
+      setUsers([]);
+      setFilteredUsers([]);
+    }
+
+  }, [currentLocation]); // Este useEffect ahora depende de currentLocation, se ejecutará cuando cambie.
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -55,7 +75,8 @@ const UsersList = () => {
     return (
       <div className="flex justify-center items-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2 text-lg">Cargando usuarios...</span>
+        {/* Mensaje de carga dinámico según la ubicación */}
+        <span className="ml-2 text-lg">Cargando usuarios para {currentLocation === 'spain' ? 'España' : currentLocation === 'latam' ? 'LATAM' : 'la ubicación seleccionada'}...</span>
       </div>
     );
   }
@@ -63,8 +84,9 @@ const UsersList = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Usuarios</h1>
-        <p className="text-muted-foreground">Usuarios con dispositivos asignados</p>
+        {/* Título dinámico que muestra la ubicación actual */}
+        <h1 className="text-2xl font-bold">Usuarios {currentLocation ? `(${currentLocation === 'spain' ? 'España' : 'LATAM'})` : ''}</h1>
+        <p className="text-muted-foreground">Usuarios con dispositivos asignados para la ubicación seleccionada.</p>
       </div>
 
       <div className="relative w-full max-w-sm">
@@ -89,7 +111,8 @@ const UsersList = () => {
             {filteredUsers.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={2} className="text-center py-8">
-                  No se encontraron usuarios
+                  {/* Mensaje dinámico si no hay usuarios */}
+                  No se encontraron usuarios para {currentLocation ? (currentLocation === 'spain' ? 'España' : 'LATAM') : 'la ubicación seleccionada'}
                 </TableCell>
               </TableRow>
             ) : (
@@ -100,8 +123,8 @@ const UsersList = () => {
                     {user}
                   </TableCell>
                   <TableCell>
-                    <Link 
-                      to={`/users/${encodeURIComponent(user)}`} 
+                    <Link
+                      to={`/users/${encodeURIComponent(user)}`}
                       className="text-blue-600 hover:underline"
                     >
                       Ver dispositivos

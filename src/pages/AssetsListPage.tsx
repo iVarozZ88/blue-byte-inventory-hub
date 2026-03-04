@@ -1,13 +1,20 @@
-
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useOutletContext } from 'react-router-dom'; // Agregado useOutletContext
 import AssetsList from '@/components/AssetsList';
-import { Asset, getAssets, AssetType } from '@/lib/db';
+import { Asset, getAssets, AssetType } from '@/lib/db'; // Asumo que getAssets viene de '@/lib/db'
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
 
+// Define la interfaz para el contexto del Layout
+interface LayoutContext {
+  currentLocation: 'spain' | 'latam' | null;
+}
+
 const AssetsListPage = () => {
   const { type } = useParams<{ type: AssetType }>();
+  // Obtiene la ubicación actual del contexto del Outlet
+  const { currentLocation } = useOutletContext<LayoutContext>();
+
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<{
@@ -28,15 +35,16 @@ const AssetsListPage = () => {
     const loadAssets = async () => {
       setLoading(true);
       try {
-        const allAssets = await getAssets();
-        
+        // Pasa currentLocation a getAssets()
+        const allAssets = await getAssets(currentLocation);
+
         // Filter by type if specified
-        const filteredAssets = type 
-          ? allAssets.filter(asset => asset.type === type) 
+        const filteredAssets = type
+          ? allAssets.filter(asset => asset.type === type)
           : allAssets;
-        
+
         setAssets(filteredAssets);
-        
+
         // Calculate stats
         const newStats = {
           total: filteredAssets.length,
@@ -45,7 +53,7 @@ const AssetsListPage = () => {
           maintenance: filteredAssets.filter(a => a.status === 'maintenance').length,
           retired: filteredAssets.filter(a => a.status === 'retired').length
         };
-        
+
         setStats(newStats);
       } catch (error) {
         console.error('Error loading assets:', error);
@@ -53,9 +61,9 @@ const AssetsListPage = () => {
         setLoading(false);
       }
     };
-    
+
     loadAssets();
-  }, [type]);
+  }, [type, currentLocation]); // Agrega currentLocation a las dependencias del useEffect
 
   if (loading) {
     return (
@@ -90,7 +98,7 @@ const AssetsListPage = () => {
           <div className="text-2xl font-bold text-gray-600">{stats.retired}</div>
         </div>
       </div>
-      
+
       <AssetsList preFilteredAssets={assets} />
     </div>
   );

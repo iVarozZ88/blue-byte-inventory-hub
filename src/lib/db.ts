@@ -18,6 +18,7 @@ export interface Asset {
   purchaseDate?: string;
   status: AssetStatus;
   assignedTo?: string;
+  location?: string; // Nueva propiedad
   notes?: string;
   lastUpdated: string;
 }
@@ -25,7 +26,7 @@ export interface Asset {
 // Function to generate a UUID
 export const generateId = (): string => {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0, 
+    const r = Math.random() * 16 | 0,
         v = c == 'x' ? r : (r & 0x3 | 0x8);
     return v.toString(16);
   });
@@ -47,6 +48,7 @@ const mapSupabaseAsset = (asset: any): Asset => {
     purchaseDate: asset.purchase_date || undefined,
     status: asset.status,
     assignedTo: asset.assigned_to || undefined,
+    location: asset.location || undefined, // Mapear la nueva propiedad
     notes: asset.notes || undefined,
     lastUpdated: asset.last_updated ? new Date(asset.last_updated).toISOString().split('T')[0] : formatDate()
   };
@@ -62,23 +64,29 @@ const mapToSupabaseAsset = (asset: Asset | Omit<Asset, 'id' | 'lastUpdated'>) =>
     purchase_date: asset.purchaseDate || null,
     status: asset.status as Database["public"]["Enums"]["asset_status"],
     assigned_to: asset.assignedTo || null,
+    location: asset.location || null, // Mapear la nueva propiedad
     notes: asset.notes || null
   };
 };
 
-// Get all assets from Supabase
-export const getAssets = async (): Promise<Asset[]> => {
+// Get all assets from Supabase, with optional location filter
+export const getAssets = async (locationFilter?: string): Promise<Asset[]> => {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('assets')
-      .select('*')
-      .order('last_updated', { ascending: false });
-    
+      .select('*');
+
+    if (locationFilter) {
+      query = query.eq('location', locationFilter);
+    }
+
+    const { data, error } = await query.order('last_updated', { ascending: false });
+
     if (error) {
       console.error('Error loading assets from Supabase:', error);
       throw error;
     }
-    
+
     return data.map(mapSupabaseAsset);
   } catch (error) {
     console.error('Error loading assets:', error);
@@ -98,12 +106,12 @@ export const getTrashedAssets = async (): Promise<Asset[]> => {
       .from('trashed_assets')
       .select('*')
       .order('deleted_at', { ascending: false });
-    
+
     if (error) {
       console.error('Error loading trashed assets from Supabase:', error);
       throw error;
     }
-    
+
     return data.map(mapSupabaseAsset);
   } catch (error) {
     console.error('Error loading trashed assets:', error);
@@ -115,18 +123,18 @@ export const getTrashedAssets = async (): Promise<Asset[]> => {
 export const addAsset = async (asset: Omit<Asset, 'id' | 'lastUpdated'>): Promise<Asset> => {
   try {
     const supabaseAsset = mapToSupabaseAsset(asset);
-    
+
     const { data, error } = await supabase
       .from('assets')
       .insert(supabaseAsset)
       .select()
       .single();
-    
+
     if (error) {
       console.error('Error adding asset to Supabase:', error);
       throw error;
     }
-    
+
     return mapSupabaseAsset(data);
   } catch (error) {
     console.error('Error adding asset:', error);
@@ -148,19 +156,19 @@ export const updateAsset = async (asset: Asset): Promise<Asset> => {
       // the current update time rather than relying on the default value
       last_updated: new Date().toISOString()
     };
-    
+
     const { data, error } = await supabase
       .from('assets')
       .update(supabaseAsset)
       .eq('id', asset.id)
       .select()
       .single();
-    
+
     if (error) {
       console.error('Error updating asset in Supabase:', error);
       throw error;
     }
-    
+
     return mapSupabaseAsset(data);
   } catch (error) {
     console.error('Error updating asset:', error);
@@ -182,12 +190,12 @@ export const deleteAsset = async (id: string): Promise<void> => {
       .select('*')
       .eq('id', id)
       .single();
-    
+
     if (getError) {
       console.error('Error getting asset for deletion:', getError);
       throw getError;
     }
-    
+
     // Insert into trashed_assets
     const { error: insertError } = await supabase
       .from('trashed_assets')
@@ -200,27 +208,28 @@ export const deleteAsset = async (id: string): Promise<void> => {
         purchase_date: assetData.purchase_date,
         status: assetData.status,
         assigned_to: assetData.assigned_to,
+        location: assetData.location, // Incluir la propiedad location
         notes: assetData.notes,
         last_updated: assetData.last_updated,
         created_at: assetData.created_at
       });
-    
+
     if (insertError) {
       console.error('Error adding asset to trash:', insertError);
       throw insertError;
     }
-    
+
     // Delete from assets
     const { error: deleteError } = await supabase
       .from('assets')
       .delete()
       .eq('id', id);
-    
+
     if (deleteError) {
       console.error('Error deleting asset:', deleteError);
       throw deleteError;
     }
-    
+
     toast({
       title: "Activo eliminado",
       description: `El activo ha sido movido a la papelera.`,
@@ -243,7 +252,7 @@ export const permanentlyDeleteAsset = async (id: string): Promise<void> => {
       .from('trashed_assets')
       .delete()
       .eq('id', id);
-    
+
     if (error) {
       console.error('Error permanently deleting asset:', error);
       throw error;
@@ -268,12 +277,12 @@ export const restoreAsset = async (id: string): Promise<void> => {
       .select('*')
       .eq('id', id)
       .single();
-    
+
     if (getError) {
       console.error('Error getting trashed asset:', getError);
       throw getError;
     }
-    
+
     // Insert into assets
     const { error: insertError } = await supabase
       .from('assets')
@@ -286,29 +295,30 @@ export const restoreAsset = async (id: string): Promise<void> => {
         purchase_date: assetData.purchase_date,
         status: assetData.status,
         assigned_to: assetData.assigned_to,
+        location: assetData.location, // Incluir la propiedad location
         notes: assetData.notes,
         created_at: assetData.created_at
       });
-    
+
     if (insertError) {
       console.error('Error restoring asset:', insertError);
       throw insertError;
     }
-    
+
     // Delete from trashed_assets
     const { error: deleteError } = await supabase
       .from('trashed_assets')
       .delete()
       .eq('id', id);
-    
+
     if (deleteError) {
       console.error('Error removing asset from trash:', deleteError);
       throw deleteError;
     }
-    
+
     toast({
       title: "Activo restaurado",
-      description: `El activo ha sido restaurado del inventario.`,
+      description: `El activo ha sido restaurado del inventario.`
     });
   } catch (error) {
     console.error('Error in restoreAsset:', error);
@@ -321,11 +331,11 @@ export const restoreAsset = async (id: string): Promise<void> => {
   }
 };
 
-// Get asset statistics
-export const getAssetStatistics = async () => {
+// Get asset statistics with optional location filter
+export const getAssetStatistics = async (locationFilter?: string) => {
   try {
-    const assets = await getAssets();
-    
+    const assets = await getAssets(locationFilter); // Usar el filtro de ubicación
+
     // Count by status
     const statusCounts = {
       available: 0,
@@ -333,7 +343,7 @@ export const getAssetStatistics = async () => {
       maintenance: 0,
       retired: 0,
     };
-    
+
     // Count by type
     const typeCounts: Record<string, number> = {
       computer: 0,
@@ -349,15 +359,15 @@ export const getAssetStatistics = async () => {
       license: 0,
       other: 0,
     };
-    
+
     assets.forEach(asset => {
       // Increment status count
       statusCounts[asset.status]++;
-      
+
       // Increment type count
       typeCounts[asset.type]++;
     });
-    
+
     return {
       total: assets.length,
       byStatus: statusCounts,
@@ -395,19 +405,26 @@ export const getAssetStatistics = async () => {
   }
 };
 
-// Get all unique users with assigned assets
-export const getUsers = async (): Promise<string[]> => {
+// Get all unique users with assigned assets, with optional location filter
+export const getUsers = async (locationFilter?: string): Promise<string[]> => {
   try {
-    const { data, error } = await supabase
+    let query = supabase
       .from('assets')
-      .select('assigned_to')
-      .not('assigned_to', 'is', null);
-    
+      .select('assigned_to');
+
+    if (locationFilter) {
+      query = query.eq('location', locationFilter);
+    }
+
+    query = query.not('assigned_to', 'is', null);
+
+    const { data, error } = await query;
+
     if (error) {
       console.error('Error getting users:', error);
       throw error;
     }
-    
+
     // Extract unique usernames and filter out empty strings
     const usersSet = new Set<string>();
     data.forEach(item => {
@@ -415,13 +432,41 @@ export const getUsers = async (): Promise<string[]> => {
         usersSet.add(item.assigned_to.trim());
       }
     });
-    
+
     return Array.from(usersSet).sort();
   } catch (error) {
     console.error('Error in getUsers:', error);
     return [];
   }
 };
+
+// Get all unique locations from assets
+export const getUniqueLocations = async (): Promise<string[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('assets')
+      .select('location')
+      .not('location', 'is', null);
+
+    if (error) {
+      console.error('Error getting unique locations:', error);
+      throw error;
+    }
+
+    const locationsSet = new Set<string>();
+    data.forEach(item => {
+      if (item.location && item.location.trim() !== '') {
+        locationsSet.add(item.location.trim());
+      }
+    });
+
+    return Array.from(locationsSet).sort();
+  } catch (error) {
+    console.error('Error in getUniqueLocations:', error);
+    return [];
+  }
+};
+
 
 // Get all assets assigned to a specific user
 export const getAssetsByUser = async (username: string): Promise<Asset[]> => {
@@ -431,12 +476,12 @@ export const getAssetsByUser = async (username: string): Promise<Asset[]> => {
       .select('*')
       .eq('assigned_to', username)
       .eq('status', 'assigned');
-    
+
     if (error) {
       console.error('Error getting assets by user:', error);
       throw error;
     }
-    
+
     return data.map(mapSupabaseAsset);
   } catch (error) {
     console.error('Error in getAssetsByUser:', error);
@@ -451,12 +496,12 @@ export const seedInitialData = async () => {
     const { count, error: countError } = await supabase
       .from('assets')
       .select('*', { count: 'exact', head: true });
-    
+
     if (countError) {
       console.error('Error checking assets count:', countError);
       return;
     }
-    
+
     // Only seed if no data exists
     if (count === 0) {
       const initialAssets = [
@@ -468,6 +513,7 @@ export const seedInitialData = async () => {
           purchase_date: "2022-06-15",
           status: "assigned" as AssetStatus,
           assigned_to: "Juan Pérez",
+          location: "Oficina Principal", // Añadido
           notes: "Laptop para desarrollador"
         },
         {
@@ -477,6 +523,7 @@ export const seedInitialData = async () => {
           serial_number: "HP987654321",
           purchase_date: "2022-03-10",
           status: "available" as AssetStatus,
+          location: "Almacén Central", // Añadido
           notes: "Laptop de respaldo"
         },
         {
@@ -487,7 +534,60 @@ export const seedInitialData = async () => {
           purchase_date: "2022-06-15",
           status: "assigned" as AssetStatus,
           assigned_to: "María López",
+          location: "Oficina Principal", // Añadido
           notes: "Monitor 4K de 27 pulgadas"
+        },
+        {
+          name: "Apple MacBook Air",
+          type: "laptop" as AssetType,
+          model: "M1",
+          serial_number: "MAC7890123",
+          purchase_date: "2023-01-20",
+          status: "assigned" as AssetStatus,
+          assigned_to: "Carlos Ruiz",
+          location: "Oficina Remota A", // Añadido
+          notes: "Laptop para diseñador gráfico"
+        },
+        {
+          name: "Logitech MX Master 3",
+          type: "mouse" as AssetType,
+          model: "MX Master 3",
+          serial_number: "MSE456789",
+          purchase_date: "2022-09-01",
+          status: "available" as AssetStatus,
+          location: "Almacén Central", // Añadido
+          notes: "Ratón ergonómico"
+        },
+        {
+          name: "iPhone 13 Pro",
+          type: "mobile" as AssetType,
+          model: "iPhone 13 Pro",
+          serial_number: "IPHONEPRO13",
+          purchase_date: "2023-03-01",
+          status: "assigned" as AssetStatus,
+          assigned_to: "Ana García",
+          location: "Oficina Remota B", // Añadido
+          notes: "Teléfono móvil corporativo"
+        },
+        {
+          name: "HP LaserJet Pro",
+          type: "printer" as AssetType,
+          model: "M404dn",
+          serial_number: "PRN777888",
+          purchase_date: "2021-11-05",
+          status: "maintenance" as AssetStatus,
+          location: "Oficina Principal", // Añadido
+          notes: "Impresora de red, necesita revisión de tóner"
+        },
+        {
+          name: "Microsoft Surface Pro 8",
+          type: "tablet" as AssetType, // Asumiendo que 'tablet' existe o se mapeará a 'other'
+          model: "Surface Pro 8",
+          serial_number: "SURFPRO8",
+          purchase_date: "2023-02-14",
+          status: "available" as AssetStatus,
+          location: "Almacén Central", // Añadido
+          notes: "Tablet convertible"
         }
       ];
 
@@ -496,13 +596,13 @@ export const seedInitialData = async () => {
         const { error } = await supabase
           .from('assets')
           .insert(asset);
-          
+
         if (error) {
           console.error('Error seeding asset:', error);
           // Continue with other assets even if one fails
         }
       }
-      
+
       console.log('Initial data seeded successfully');
     }
   } catch (error) {

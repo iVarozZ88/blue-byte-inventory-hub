@@ -18,6 +18,7 @@ import LicenseAssignmentsPage from "./pages/LicenseAssignmentsPage";
 import { useEffect } from "react";
 import { seedInitialData } from "./lib/db";
 import LoginGate from "@/components/LoginGate";
+import Dashboard from "./pages/Dashboard";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,7 @@ const App = () => {
             <Routes>
               <Route path="/" element={<Layout />}>
                 <Route index element={<Index />} />
+                <Route path="dashboard" element={<Dashboard />} />
                 <Route path="assets" element={<AssetsListPage />} />
                 <Route path="assets/new" element={<NewAssetPage />} />
                 <Route path="assets/:type" element={<AssetsListPage />} />

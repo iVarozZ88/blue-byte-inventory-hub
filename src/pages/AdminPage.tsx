@@ -15,7 +15,7 @@ import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { FileText, Upload, FolderPlus, FilePlus2 } from 'lucide-react';
 
-const ADMIN_PASSWORD = 'Inventory@@12345@';
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
 
 const AdminPage = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
