@@ -7,7 +7,8 @@ import StatCard from '@/components/StatCard';
 import AssetDistributionChart, { ChartData } from '@/components/AssetDistributionChart';
 import RecentlyUpdatedTable from '@/components/RecentlyUpdatedTable';
 import { LayoutDashboard, Monitor, Laptop, FileText } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
+import type { LocationValue } from '@/contexts/AuthContext';
 
 // Define the structure of our stats state
 interface StatsState {
@@ -62,6 +63,7 @@ const STATUS_COLORS = {
 const Dashboard = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { currentLocation } = useOutletContext<{ currentLocation: LocationValue | null }>();
   
   const [stats, setStats] = useState<StatsState>({
     total: 0,
@@ -91,7 +93,7 @@ const Dashboard = () => {
   useEffect(() => {
     const loadStatistics = async () => {
       try {
-        const statistics = await getAssetStatistics();
+        const statistics = await getAssetStatistics(currentLocation ?? undefined);
         setStats(statistics as StatsState);
       } catch (error) {
         console.error("Error loading statistics:", error);
@@ -104,7 +106,7 @@ const Dashboard = () => {
     };
 
     loadStatistics();
-  }, [toast]);
+  }, [toast, currentLocation]);
 
   return (
     <div className="space-y-6">

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { Asset, getTrashedAssets, restoreAsset, permanentlyDeleteAsset } from '@/lib/db';
+import type { LocationValue } from '@/contexts/AuthContext';
 import { 
   Table, 
   TableBody, 
@@ -74,15 +76,19 @@ const TrashPage = () => {
   const [trashedAssets, setTrashedAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
-  
+  const { currentLocation } = useOutletContext<{ currentLocation: LocationValue | null }>();
+
   useEffect(() => {
     loadTrashedAssets();
-  }, []);
-  
+  }, [currentLocation]);
+
   const loadTrashedAssets = async () => {
     setLoading(true);
     try {
-      const assets = await getTrashedAssets();
+      const allTrashed = await getTrashedAssets();
+      const assets = currentLocation
+        ? allTrashed.filter(a => a.location === currentLocation)
+        : allTrashed;
       setTrashedAssets(assets);
     } catch (error) {
       console.error('Error loading trashed assets:', error);

@@ -1,7 +1,8 @@
 
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useOutletContext } from 'react-router-dom';
 import { Asset, getAssets } from '@/lib/db';
+import type { LocationValue } from '@/contexts/AuthContext';
 import LicenseAssignments from '@/components/LicenseAssignments';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,15 +11,16 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 const LicenseAssignmentsPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { currentLocation } = useOutletContext<{ currentLocation: LocationValue | null }>();
   const [license, setLicense] = useState<Asset | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadLicense = async () => {
       if (!id) return;
-      
+
       try {
-        const assets = await getAssets();
+        const assets = await getAssets(currentLocation ?? undefined);
         const asset = assets.find(a => a.id === id);
         
         if (asset && asset.type === 'license') {
@@ -35,16 +37,16 @@ const LicenseAssignmentsPage = () => {
     };
     
     loadLicense();
-  }, [id, navigate]);
+  }, [id, navigate, currentLocation]);
 
   const handleLicenseUpdated = () => {
     // Reload the license data
     const reloadLicense = async () => {
       if (!id) return;
-      
+
       try {
         setLoading(true);
-        const assets = await getAssets();
+        const assets = await getAssets(currentLocation ?? undefined);
         const asset = assets.find(a => a.id === id);
         
         if (asset && asset.type === 'license') {

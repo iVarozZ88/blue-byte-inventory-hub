@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Asset, getAssetsByUser } from '@/lib/db';
+import type { LocationValue } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -61,7 +62,7 @@ const typeLabels: Record<string, string> = {
   other: 'Otro'
 };
 
-const UserDetail = () => {
+const UserDetail = ({ currentLocation }: { currentLocation: LocationValue | null }) => {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -73,7 +74,10 @@ const UserDetail = () => {
         try {
           const decodedUsername = decodeURIComponent(username);
           const userAssets = await getAssetsByUser(decodedUsername);
-          setAssets(userAssets);
+          const filtered = currentLocation
+            ? userAssets.filter(a => a.location === currentLocation)
+            : userAssets;
+          setAssets(filtered);
         } catch (error) {
           console.error("Error loading user assets:", error);
           toast({
@@ -88,7 +92,7 @@ const UserDetail = () => {
     };
     
     loadUserAssets();
-  }, [username]);
+  }, [username, currentLocation]);
 
   if (loading) {
     return (
