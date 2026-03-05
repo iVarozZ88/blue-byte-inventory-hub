@@ -63,7 +63,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     <div className="bg-sidebar fixed left-0 top-0 h-full w-64 text-white overflow-y-auto">
       <div className="p-5 flex flex-col items-center justify-center border-b border-gray-700">
         <Link
-          to="/Dashboard"
+          to="/dashboard"
           className="flex flex-col items-center text-center space-y-1"
         >
           <img src="/logo.jpg" alt="MCI Inventory Logo" className="h-20 w-15" />
@@ -110,10 +110,10 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       <nav className="mt-5 px-3">
         <NavLink
-          to="/Dashboard"
+          to="/dashboard"
           className={({ isActive: navIsActive }) =>
             `flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors
-            ${isActive("/Dashboard") ? "bg-gray-700 text-white" : "text-gray-300 hover:bg-gray-700 hover:text-white"}`
+            ${isActive("/dashboard") ? "bg-gray-700 text-white" : "text-gray-300 hover:bg-gray-700 hover:text-white"}`
           }
         >
           <LayoutDashboard size={18} className="mr-3" />

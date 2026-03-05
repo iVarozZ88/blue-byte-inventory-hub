@@ -513,7 +513,7 @@ export const seedInitialData = async () => {
           purchase_date: "2022-06-15",
           status: "assigned" as AssetStatus,
           assigned_to: "Juan Pérez",
-          location: "Oficina Principal", // Añadido
+          location: "MCI_SPAIN",
           notes: "Laptop para desarrollador"
         },
         {
@@ -523,7 +523,7 @@ export const seedInitialData = async () => {
           serial_number: "HP987654321",
           purchase_date: "2022-03-10",
           status: "available" as AssetStatus,
-          location: "Almacén Central", // Añadido
+          location: "MCI_SPAIN",
           notes: "Laptop de respaldo"
         },
         {
@@ -534,7 +534,7 @@ export const seedInitialData = async () => {
           purchase_date: "2022-06-15",
           status: "assigned" as AssetStatus,
           assigned_to: "María López",
-          location: "Oficina Principal", // Añadido
+          location: "MCI_SPAIN",
           notes: "Monitor 4K de 27 pulgadas"
         },
         {
@@ -545,7 +545,7 @@ export const seedInitialData = async () => {
           purchase_date: "2023-01-20",
           status: "assigned" as AssetStatus,
           assigned_to: "Carlos Ruiz",
-          location: "Oficina Remota A", // Añadido
+          location: "MCI_LATAM",
           notes: "Laptop para diseñador gráfico"
         },
         {
@@ -555,7 +555,7 @@ export const seedInitialData = async () => {
           serial_number: "MSE456789",
           purchase_date: "2022-09-01",
           status: "available" as AssetStatus,
-          location: "Almacén Central", // Añadido
+          location: "MCI_SPAIN",
           notes: "Ratón ergonómico"
         },
         {
@@ -566,7 +566,7 @@ export const seedInitialData = async () => {
           purchase_date: "2023-03-01",
           status: "assigned" as AssetStatus,
           assigned_to: "Ana García",
-          location: "Oficina Remota B", // Añadido
+          location: "MCI_LATAM",
           notes: "Teléfono móvil corporativo"
         },
         {
@@ -576,17 +576,17 @@ export const seedInitialData = async () => {
           serial_number: "PRN777888",
           purchase_date: "2021-11-05",
           status: "maintenance" as AssetStatus,
-          location: "Oficina Principal", // Añadido
+          location: "MCI_SPAIN",
           notes: "Impresora de red, necesita revisión de tóner"
         },
         {
           name: "Microsoft Surface Pro 8",
-          type: "tablet" as AssetType, // Asumiendo que 'tablet' existe o se mapeará a 'other'
+          type: "other" as AssetType,
           model: "Surface Pro 8",
           serial_number: "SURFPRO8",
           purchase_date: "2023-02-14",
           status: "available" as AssetStatus,
-          location: "Almacén Central", // Añadido
+          location: "MCI_LATAM",
           notes: "Tablet convertible"
         }
       ];
