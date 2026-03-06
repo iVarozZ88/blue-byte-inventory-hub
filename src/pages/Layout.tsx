@@ -1,48 +1,49 @@
-// src/pages/Layout.tsx
 import { useState } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import Sidebar from "@/components/Sidebar";
+import { usePermissions, type LocationValue } from "@/contexts/AuthContext";
+import { Badge } from "@/components/ui/badge";
 
 const Layout = () => {
-  // Estado para almacenar la ubicación seleccionada.
-  // Lo inicializamos en 'spain' para que al cargar la página ya haya una ubicación predeterminada.
-  const [currentLocation, setCurrentLocation] = useState<'spain' | 'latam' | null>('spain');
+  const [currentLocation, setCurrentLocation] = useState<LocationValue | null>("MCI_SPAIN");
   const navigate = useNavigate();
+  const { canWriteAssets, canManageUsers, isReadOnly } = usePermissions(currentLocation);
 
-  // Función que se llama cuando se selecciona una ubicación en el Sidebar.
-  const handleLocationSelect = (location: 'spain' | 'latam') => {
+  const handleLocationSelect = (location: LocationValue) => {
     setCurrentLocation(location);
-    // Opcional: Podrías redirigir a una página principal al cambiar de ubicación
-    // Por ejemplo, navegar a la raíz o a la página de usuarios para la nueva ubicación
-    // navigate(`/users?location=${location}`);
+  };
+
+  const handleAddAssetClick = () => {
+    if (canWriteAssets) {
+      navigate("/assets/new");
+    }
   };
 
   return (
     <div className="flex min-h-screen bg-gray-100">
-      {/* Componente Sidebar - Se mantiene fijo */}
       <Sidebar
-        onLocationSelect={handleLocationSelect} // Pasamos la función para seleccionar ubicación
-        currentLocation={currentLocation} // Pasamos la ubicación actual para que el Sidebar la muestre
-        onAddAssetClick={function (): void {
-          throw new Error("Function not implemented.");
-        } }      />
+        onLocationSelect={handleLocationSelect}
+        currentLocation={currentLocation}
+        onAddAssetClick={handleAddAssetClick}
+        canWriteAssets={canWriteAssets}
+        canManageUsers={canManageUsers}
+      />
 
-      {/* Área del Contenido Principal */}
-      {/*
-        ¡IMPORTANTE!
-        Añadimos 'ml-64' (margin-left: 16rem) al main para desplazarlo hacia la derecha,
-        compensando el ancho del sidebar fijo y evitando la superposición.
-        El 'p-8' lo mantienes para el padding interno del contenido.
-      */}
-      <main className="flex-1 ml-64 p-8"> {/* Aquí se añade 'ml-64' */}
-        {/* Título dinámico que muestra la ubicación seleccionada */}
-        <h1 className="text-3xl font-bold mb-6">
-          {currentLocation ? `Inventario MCI ${currentLocation === 'spain' ? '(España)' : '(República Dominicana)'}` : 'Selecciona una ubicación'}
-        </h1>
+      <main className="flex-1 ml-64 p-8">
+        <div className="flex items-center gap-3 mb-6">
+          <h1 className="text-3xl font-bold">
+            {currentLocation
+              ? `Inventario MCI ${currentLocation === "MCI_SPAIN" ? "(España)" : "(Rep. Dominicana)"}`
+              : "Selecciona una ubicación"}
+          </h1>
+          {isReadOnly && (
+            <Badge variant="secondary" className="text-amber-700 bg-amber-100">
+              Solo lectura (MCI Spain)
+            </Badge>
+          )}
+        </div>
 
-        {/* Outlet es donde se renderizarán los componentes de las rutas anidadas.
-            Usamos 'context' para pasar el 'currentLocation' a esos componentes. */}
-        <Outlet context={{ currentLocation }} /> {/* Aquí se añade 'context' */}
+        <Outlet context={{ currentLocation }} />
       </main>
     </div>
   );

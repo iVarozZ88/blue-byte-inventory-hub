@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
 
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
-const SESSION_KEY = "app_is_authenticated";
+const SESSION_STORAGE_KEY = "app_session";
+const SESSION_TTL = 8 * 60 * 60 * 1000; // 8 horas
+
+type Session = { authenticated: boolean; loginTime: number };
+
+const isSessionValid = (session: Session | null): boolean => {
+  if (!session || session.authenticated !== true) return false;
+  return session.loginTime + SESSION_TTL > Date.now();
+};
 
 export default function LoginGate({ children }: { children: React.ReactNode }) {
   const [password, setPassword] = useState("");
@@ -14,15 +21,34 @@ export default function LoginGate({ children }: { children: React.ReactNode }) {
   const [authenticated, setAuthenticated] = useState(false);
 
   useEffect(() => {
-    if (sessionStorage.getItem(SESSION_KEY) === "yes") {
-      setAuthenticated(true);
+    let session: Session | null = null;
+    try {
+      const raw = sessionStorage.getItem(SESSION_STORAGE_KEY);
+      session = raw ? (JSON.parse(raw) as Session | null) : null;
+    } catch {
+      session = null;
     }
+
+    if (!isSessionValid(session)) {
+      sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      sessionStorage.removeItem("app_is_authenticated");
+      setAuthenticated(false);
+      return;
+    }
+
+    setAuthenticated(true);
   }, []);
 
   const handleSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (password === ADMIN_PASSWORD) {
-      sessionStorage.setItem(SESSION_KEY, "yes");
+      sessionStorage.setItem(
+        SESSION_STORAGE_KEY,
+        JSON.stringify({
+          authenticated: true,
+          loginTime: Date.now()
+        })
+      );
       setAuthenticated(true);
     } else {
       setShowError(true);

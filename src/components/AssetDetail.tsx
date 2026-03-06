@@ -34,7 +34,7 @@ import {
   Loader2
 } from 'lucide-react';
 
-const AssetDetail = () => {
+const AssetDetail = ({ canWriteAssets = true }: { canWriteAssets?: boolean }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -308,30 +308,32 @@ const AssetDetail = () => {
           Volver
         </Button>
         <div className="flex gap-2">
-          <Button 
-            variant="outline"
-            className="flex items-center gap-2"
-            onClick={() => navigate(`/assets/id/${id}/edit`)}
-          >
-            <Edit size={16} />
-            <span>Editar</span>
-          </Button>
-          
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
+          {canWriteAssets && (
+            <>
               <Button 
-                variant="destructive"
+                variant="outline"
                 className="flex items-center gap-2"
-                disabled={isDeleting}
+                onClick={() => navigate(`/assets/id/${id}/edit`)}
               >
-                {isDeleting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Trash size={16} />
-                )}
-                <span>Eliminar</span>
+                <Edit size={16} />
+                <span>Editar</span>
               </Button>
-            </AlertDialogTrigger>
+              
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    variant="destructive"
+                    className="flex items-center gap-2"
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash size={16} />
+                    )}
+                    <span>Eliminar</span>
+                  </Button>
+                </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Eliminar activo</AlertDialogTitle>
@@ -344,7 +346,9 @@ const AssetDetail = () => {
                 <AlertDialogAction onClick={handleDeleteAsset}>Eliminar</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
-          </AlertDialog>
+              </AlertDialog>
+            </>
+          )}
         </div>
       </CardFooter>
     </Card>

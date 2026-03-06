@@ -76,7 +76,13 @@ const getAssetIcon = (type: string) => {
   }
 };
 
-const AssetsList = ({ preFilteredAssets }: { preFilteredAssets?: Asset[] }) => {
+const AssetsList = ({
+  preFilteredAssets,
+  canWriteAssets = true,
+}: {
+  preFilteredAssets?: Asset[];
+  canWriteAssets?: boolean;
+}) => {
   const { type } = useParams<{ type: string }>();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [filteredAssets, setFilteredAssets] = useState<Asset[]>([]);
@@ -227,12 +233,14 @@ const AssetsList = ({ preFilteredAssets }: { preFilteredAssets?: Asset[] }) => {
             }
           />
           
-          <Button asChild>
-            <Link to="/assets/new" className="flex items-center gap-2">
-              <PlusCircle size={16} />
-              <span>Agregar Activo</span>
-            </Link>
-          </Button>
+          {canWriteAssets && (
+            <Button asChild>
+              <Link to="/assets/new" className="flex items-center gap-2">
+                <PlusCircle size={16} />
+                <span>Agregar Activo</span>
+              </Link>
+            </Button>
+          )}
         </div>
       </div>
 

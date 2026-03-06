@@ -1,21 +1,22 @@
-// src/pages/UsersListPage.tsx
-import React from 'react';
+import React, { useEffect } from 'react';
 import UsersList from '@/components/UsersList';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useNavigate } from 'react-router-dom';
+import { usePermissions } from '@/contexts/AuthContext';
 
-// Define la interfaz para el contexto que esperamos del Outlet
 interface LayoutContext {
-  currentLocation: 'spain' | 'latam' | null;
+  currentLocation: 'MCI_SPAIN' | 'MCI_LATAM' | null;
 }
 
 const UsersListPage: React.FC = () => {
-  // Obtiene la ubicación actual del contexto del Outlet proporcionado por Layout
   const { currentLocation } = useOutletContext<LayoutContext>();
+  const { canManageUsers } = usePermissions(currentLocation);
+  const navigate = useNavigate();
 
-  // Renderiza el componente UsersList y le pasa la currentLocation como una prop
-  return (
-    <UsersList currentLocation={currentLocation} />
-  );
+  useEffect(() => {
+    if (!canManageUsers) navigate('/');
+  }, [canManageUsers, navigate]);
+
+  return <UsersList currentLocation={currentLocation} />;
 };
 
 export default UsersListPage;

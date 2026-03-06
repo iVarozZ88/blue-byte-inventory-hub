@@ -1,5 +1,14 @@
-
 import { Asset } from '@/lib/db';
+
+function escapeHtml(input: unknown): string {
+  const s = String(input ?? "");
+  return s
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
 
 export const exportToPDF = (assets: Asset[], title: string) => {
   // Create a new window for the printable content
@@ -42,16 +51,16 @@ export const exportToPDF = (assets: Asset[], title: string) => {
     return typeLabels[type] || type;
   };
 
-  // Generate table rows for assets
+  // Generate table rows for assets (todos los campos sanitizados para evitar XSS)
   const assetRows = assets.map(asset => `
     <tr>
-      <td>${asset.name}</td>
-      <td>${getTypeLabel(asset.type)}</td>
-      <td>${asset.model || '-'}</td>
-      <td>${asset.serialNumber || '-'}</td>
-      <td>${getStatusLabel(asset.status)}</td>
-      <td>${asset.assignedTo || '-'}</td>
-      <td>${asset.lastUpdated}</td>
+      <td>${escapeHtml(asset.name)}</td>
+      <td>${escapeHtml(getTypeLabel(asset.type))}</td>
+      <td>${escapeHtml(asset.model || '-')}</td>
+      <td>${escapeHtml(asset.serialNumber || '-')}</td>
+      <td>${escapeHtml(getStatusLabel(asset.status))}</td>
+      <td>${escapeHtml(asset.assignedTo || '-')}</td>
+      <td>${escapeHtml(asset.lastUpdated)}</td>
     </tr>
   `).join('');
 
@@ -62,7 +71,7 @@ export const exportToPDF = (assets: Asset[], title: string) => {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>${title} - Inventario Tech</title>
+      <title>${escapeHtml(title)} - Inventario Tech</title>
       <style>
         body {
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -133,7 +142,7 @@ export const exportToPDF = (assets: Asset[], title: string) => {
     </head>
     <body>
       <div class="header">
-        <h1>Inventario Tech - ${title}</h1>
+        <h1>Inventario Tech - ${escapeHtml(title)}</h1>
         <div class="date">Generado el: ${formattedDate}</div>
       </div>
       

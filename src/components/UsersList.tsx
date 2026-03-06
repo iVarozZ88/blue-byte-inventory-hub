@@ -15,7 +15,7 @@ import { Search, UserCircle, Loader2 } from 'lucide-react';
 
 // ¡¡IMPORTANTE!! Define la interfaz de props que este componente UsersList va a recibir.
 interface UsersListProps {
-  currentLocation: 'spain' | 'latam' | null;
+  currentLocation: 'MCI_SPAIN' | 'MCI_LATAM' | null;
 }
 
 // El componente UsersList ahora acepta 'currentLocation' como una prop.
@@ -76,7 +76,7 @@ const UsersList: React.FC<UsersListProps> = ({ currentLocation }) => {
       <div className="flex justify-center items-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         {/* Mensaje de carga dinámico según la ubicación */}
-        <span className="ml-2 text-lg">Cargando usuarios para {currentLocation === 'spain' ? 'España' : currentLocation === 'latam' ? 'LATAM' : 'la ubicación seleccionada'}...</span>
+        <span className="ml-2 text-lg">Cargando usuarios para {currentLocation === 'MCI_SPAIN' ? 'España' : currentLocation === 'MCI_LATAM' ? 'LATAM' : 'la ubicación seleccionada'}...</span>
       </div>
     );
   }
@@ -85,7 +85,7 @@ const UsersList: React.FC<UsersListProps> = ({ currentLocation }) => {
     <div className="space-y-6">
       <div>
         {/* Título dinámico que muestra la ubicación actual */}
-        <h1 className="text-2xl font-bold">Usuarios {currentLocation ? `(${currentLocation === 'spain' ? 'España' : 'LATAM'})` : ''}</h1>
+        <h1 className="text-2xl font-bold">Usuarios {currentLocation ? `(${currentLocation === 'MCI_SPAIN' ? 'España' : 'LATAM'})` : ''}</h1>
         <p className="text-muted-foreground">Usuarios con dispositivos asignados para la ubicación seleccionada.</p>
       </div>
 
@@ -112,7 +112,7 @@ const UsersList: React.FC<UsersListProps> = ({ currentLocation }) => {
               <TableRow>
                 <TableCell colSpan={2} className="text-center py-8">
                   {/* Mensaje dinámico si no hay usuarios */}
-                  No se encontraron usuarios para {currentLocation ? (currentLocation === 'spain' ? 'España' : 'LATAM') : 'la ubicación seleccionada'}
+                  No se encontraron usuarios para {currentLocation ? (currentLocation === 'MCI_SPAIN' ? 'España' : 'LATAM') : 'la ubicación seleccionada'}
                 </TableCell>
               </TableRow>
             ) : (

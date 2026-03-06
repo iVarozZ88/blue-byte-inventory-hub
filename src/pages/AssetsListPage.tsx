@@ -1,19 +1,19 @@
 import { useState, useEffect } from 'react';
-import { useParams, useOutletContext } from 'react-router-dom'; // Agregado useOutletContext
+import { useParams, useOutletContext } from 'react-router-dom';
 import AssetsList from '@/components/AssetsList';
-import { Asset, getAssets, AssetType } from '@/lib/db'; // Asumo que getAssets viene de '@/lib/db'
+import { Asset, getAssets, AssetType } from '@/lib/db';
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
+import { usePermissions } from '@/contexts/AuthContext';
 
-// Define la interfaz para el contexto del Layout
 interface LayoutContext {
-  currentLocation: 'spain' | 'latam' | null;
+  currentLocation: 'MCI_SPAIN' | 'MCI_LATAM' | null;
 }
 
 const AssetsListPage = () => {
   const { type } = useParams<{ type: AssetType }>();
-  // Obtiene la ubicación actual del contexto del Outlet
   const { currentLocation } = useOutletContext<LayoutContext>();
+  const { canWriteAssets } = usePermissions(currentLocation);
 
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,7 +99,7 @@ const AssetsListPage = () => {
         </div>
       </div>
 
-      <AssetsList preFilteredAssets={assets} />
+      <AssetsList preFilteredAssets={assets} canWriteAssets={canWriteAssets} />
     </div>
   );
 };

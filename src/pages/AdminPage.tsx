@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useOutletContext, useNavigate } from 'react-router-dom';
 import { 
   Dialog, 
   DialogContent, 
@@ -14,10 +15,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { FileText, Upload, FolderPlus, FilePlus2 } from 'lucide-react';
+import { usePermissions } from '@/contexts/AuthContext';
 
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
 
+interface LayoutContext {
+  currentLocation: 'MCI_SPAIN' | 'MCI_LATAM' | null;
+}
+
 const AdminPage = () => {
+  const { currentLocation } = useOutletContext<LayoutContext>();
+  const { canManageUsers } = usePermissions(currentLocation);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!canManageUsers) navigate('/');
+  }, [canManageUsers, navigate]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showDialog, setShowDialog] = useState(true);
   const [password, setPassword] = useState('');

@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Asset, AssetType, AssetStatus, addAsset, updateAsset, formatDate } from '@/lib/db';
+import { assetSchema, type AssetFormData } from '@/lib/assetSchema';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,6 +21,7 @@ import { Loader2 } from 'lucide-react';
 
 interface AssetFormProps {
   mode: 'create' | 'edit';
+  canWriteAssets?: boolean;
 }
 
 const assetTypes: { value: AssetType; label: string }[] = [
@@ -42,46 +46,40 @@ const assetStatuses: { value: AssetStatus; label: string }[] = [
   { value: 'retired', label: 'Retired' },
 ];
 
-// Opciones para la ubicación
-const assetLocations: { value: 'spain' | 'latam'; label: string }[] = [
-  { value: 'spain', label: 'España' },
-  { value: 'latam', label: 'LATAM (Rep. Dominicana)' },
+const assetLocations: { value: 'MCI_SPAIN' | 'MCI_LATAM'; label: string }[] = [
+  { value: 'MCI_SPAIN', label: 'España' },
+  { value: 'MCI_LATAM', label: 'LATAM (Rep. Dominicana)' },
 ];
 
-const AssetForm = ({ mode }: AssetFormProps) => {
+const defaultValues: AssetFormData = {
+  name: '',
+  type: 'computer',
+  model: '',
+  serialNumber: '',
+  purchaseDate: formatDate(new Date()),
+  status: 'available',
+  assignedTo: '',
+  location: 'MCI_SPAIN',
+  notes: '',
+  operatingSystem: '',
+  rental: '',
+  deliveryNote: '',
+  teamviewerId: '',
+  phoneNumber: '',
+  pin: '',
+  puk: '',
+  imei1: '',
+  imei2: ''
+};
+
+const AssetForm = ({ mode, canWriteAssets = true }: AssetFormProps) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [asset, setAsset] = useState<Partial<Asset & {
-    operatingSystem?: string;
-    rental?: string;
-    deliveryNote?: string;
-    teamviewerId?: string;
-    phoneNumber?: string;
-    pin?: string;
-    puk?: string;
-    imei1?: string;
-    imei2?: string;
-  }>>({
-    name: '',
-    type: 'computer',
-    model: '',
-    serialNumber: '',
-    purchaseDate: formatDate(new Date()),
-    status: 'available',
-    assignedTo: '',
-    location: 'spain', // <-- ¡AÑADIDO: Valor por defecto para la ubicación!
-    notes: '',
-    operatingSystem: '',
-    rental: '',
-    deliveryNote: '',
-    teamviewerId: '',
-    phoneNumber: '',
-    pin: '',
-    puk: '',
-    imei1: '',
-    imei2: ''
+  const form = useForm<AssetFormData>({
+    resolver: zodResolver(assetSchema),
+    defaultValues,
   });
 
   const [loading, setLoading] = useState<boolean>(mode === 'edit');
@@ -98,9 +96,26 @@ const AssetForm = ({ mode }: AssetFormProps) => {
           const existingAsset = assets.find(a => a.id === id);
           
           if (existingAsset) {
-            setAsset({
-              ...existingAsset,
-              ...(existingAsset.notes ? tryParseCustomFields(existingAsset.notes) : {})
+            const customFields = existingAsset.notes ? tryParseCustomFields(existingAsset.notes) : {};
+            form.reset({
+              name: existingAsset.name,
+              type: existingAsset.type,
+              model: existingAsset.model ?? '',
+              serialNumber: existingAsset.serialNumber ?? '',
+              purchaseDate: existingAsset.purchaseDate ?? formatDate(new Date()),
+              status: existingAsset.status,
+              assignedTo: existingAsset.assignedTo ?? '',
+              location: existingAsset.location ?? 'MCI_SPAIN',
+              notes: (customFields as { notes?: string }).notes ?? existingAsset.notes ?? '',
+              operatingSystem: (customFields as { operatingSystem?: string }).operatingSystem ?? '',
+              rental: (customFields as { rental?: string }).rental ?? '',
+              deliveryNote: (customFields as { deliveryNote?: string }).deliveryNote ?? '',
+              teamviewerId: (customFields as { teamviewerId?: string }).teamviewerId ?? '',
+              phoneNumber: (customFields as { phoneNumber?: string }).phoneNumber ?? '',
+              pin: (customFields as { pin?: string }).pin ?? '',
+              puk: (customFields as { puk?: string }).puk ?? '',
+              imei1: (customFields as { imei1?: string }).imei1 ?? '',
+              imei2: (customFields as { imei2?: string }).imei2 ?? '',
             });
           } else {
             toast({
@@ -126,7 +141,7 @@ const AssetForm = ({ mode }: AssetFormProps) => {
     };
     
     loadAsset();
-  }, [id, mode, navigate, toast]);
+  }, [id, mode, navigate, toast, form]);
 
   const tryParseCustomFields = (notes: string) => {
     try {
@@ -160,72 +175,58 @@ const AssetForm = ({ mode }: AssetFormProps) => {
     return { notes }; // Si no es JSON o no coincide, devuelve las notas tal cual
   };
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setAsset(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSelectChange = (name: string, value: string) => {
-    setAsset(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!asset.name || !asset.type || !asset.status || !asset.location) { // <-- ¡AÑADIDO: Validación para location!
+  const onSubmit = async (data: AssetFormData) => {
+    if (!canWriteAssets) {
       toast({
-        title: "Missing information",
-        description: "Please fill in all required fields (Name, Type, Status, Location).",
+        title: "Solo lectura",
+        description: "No tienes permisos para modificar activos en esta ubicación.",
         variant: "destructive",
       });
       return;
     }
-
     try {
       setSubmitting(true);
 
-      let finalAsset: Partial<Asset> = { ...asset };
+      let finalAsset: Partial<Asset> = { ...data };
       
       // Manejo de campos personalizados y notas
       const customFields: Record<string, string> = {};
       // Siempre incluye las notas generales
-      if (asset.notes) customFields.generalNotes = asset.notes;
+      if (data.notes) customFields.generalNotes = data.notes;
 
-      if (asset.type === 'computer' || asset.type === 'laptop') {
-        if (asset.operatingSystem) customFields.operatingSystem = asset.operatingSystem;
-        if (asset.rental) customFields.rental = asset.rental;
-        if (asset.deliveryNote) customFields.deliveryNote = asset.deliveryNote;
-        if (asset.teamviewerId) customFields.teamviewerId = asset.teamviewerId;
+      if (data.type === 'computer' || data.type === 'laptop') {
+        if (data.operatingSystem) customFields.operatingSystem = data.operatingSystem;
+        if (data.rental) customFields.rental = data.rental;
+        if (data.deliveryNote) customFields.deliveryNote = data.deliveryNote;
+        if (data.teamviewerId) customFields.teamviewerId = data.teamviewerId;
         
         // Excluye los campos específicos del objeto principal para no guardarlos directamente en la tabla
-        const { operatingSystem, rental, deliveryNote, teamviewerId, phoneNumber, pin, puk, imei1, imei2, ...standardAsset } = asset;
+        const { operatingSystem, rental, deliveryNote, teamviewerId, phoneNumber, pin, puk, imei1, imei2, ...standardAsset } = data;
         finalAsset = {
           ...standardAsset,
           notes: Object.keys(customFields).length > 0 ? JSON.stringify(customFields) : '',
-          location: asset.location, // Aseguramos que location se mantenga
-        } as Partial<Asset>; // Cast para satisfacer TypeScript
-      } else if (asset.type === 'mobile') {
-        if (asset.phoneNumber) customFields.phoneNumber = asset.phoneNumber;
-        if (asset.pin) customFields.pin = asset.pin;
-        if (asset.puk) customFields.puk = asset.puk;
-        if (asset.imei1) customFields.imei1 = asset.imei1;
-        if (asset.imei2) customFields.imei2 = asset.imei2;
+          location: data.location,
+        } as Partial<Asset>;
+      } else if (data.type === 'mobile') {
+        if (data.phoneNumber) customFields.phoneNumber = data.phoneNumber;
+        if (data.pin) customFields.pin = data.pin;
+        if (data.puk) customFields.puk = data.puk;
+        if (data.imei1) customFields.imei1 = data.imei1;
+        if (data.imei2) customFields.imei2 = data.imei2;
 
-        const { phoneNumber, pin, puk, imei1, imei2, operatingSystem, rental, deliveryNote, teamviewerId, ...standardAsset } = asset;
+        const { phoneNumber, pin, puk, imei1, imei2, operatingSystem, rental, deliveryNote, teamviewerId, ...standardAsset } = data;
         finalAsset = {
           ...standardAsset,
           notes: Object.keys(customFields).length > 0 ? JSON.stringify(customFields) : '',
-          location: asset.location, // Aseguramos que location se mantenga
-        } as Partial<Asset>; // Cast para satisfacer TypeScript
+          location: data.location,
+        } as Partial<Asset>;
       } else {
         // Para otros tipos, solo serializamos las notas si existen
-        const { operatingSystem, rental, deliveryNote, teamviewerId, phoneNumber, pin, puk, imei1, imei2, ...standardAsset } = asset;
+        const { operatingSystem, rental, deliveryNote, teamviewerId, phoneNumber, pin, puk, imei1, imei2, ...standardAsset } = data;
         finalAsset = {
-            ...standardAsset,
-            notes: asset.notes || '', // Si no hay campos personalizados, las notas van directamente
-            location: asset.location,
+          ...standardAsset,
+          notes: data.notes || '',
+          location: data.location,
         } as Partial<Asset>;
       }
       
@@ -267,47 +268,54 @@ const AssetForm = ({ mode }: AssetFormProps) => {
     );
   }
 
-  const isComputerOrLaptop = asset.type === 'computer' || asset.type === 'laptop';
-  const isMobilePhone = asset.type === 'mobile';
+  const assetType = form.watch('type');
+  const assetStatus = form.watch('status');
+  const isComputerOrLaptop = assetType === 'computer' || assetType === 'laptop';
+  const isMobilePhone = assetType === 'mobile';
 
   return (
     <Card className="w-full max-w-3xl mx-auto">
       <CardHeader>
         <CardTitle>{mode === 'create' ? 'Add New Asset' : 'Edit Asset'}</CardTitle>
       </CardHeader>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={form.handleSubmit(onSubmit)}>
         <CardContent className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="name">Asset Name*</Label>
               <Input 
                 id="name" 
-                name="name" 
-                value={asset.name || ''} // Asegura un string vacío si es null/undefined
-                onChange={handleInputChange}
                 placeholder="e.g. Dell XPS 15"
-                required
+                {...form.register('name')}
               />
+              {form.formState.errors.name && (
+                <p className="text-red-500 text-sm">{form.formState.errors.name.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="type">Asset Type*</Label>
-              <Select 
-                name="type" 
-                value={asset.type} 
-                onValueChange={(value) => handleSelectChange('type', value)}
-              >
-                <SelectTrigger id="type">
-                  <SelectValue placeholder="Select asset type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {assetTypes.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                name="type"
+                control={form.control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="type">
+                      <SelectValue placeholder="Select asset type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {assetTypes.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {form.formState.errors.type && (
+                <p className="text-red-500 text-sm">{form.formState.errors.type.message}</p>
+              )}
             </div>
           </div>
 
@@ -316,22 +324,24 @@ const AssetForm = ({ mode }: AssetFormProps) => {
               <Label htmlFor="model">Model</Label>
               <Input 
                 id="model" 
-                name="model" 
-                value={asset.model || ''} 
-                onChange={handleInputChange}
                 placeholder="e.g. XPS 15 9500"
+                {...form.register('model')}
               />
+              {form.formState.errors.model && (
+                <p className="text-red-500 text-sm">{form.formState.errors.model.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="serialNumber">Serial Number</Label>
               <Input 
                 id="serialNumber" 
-                name="serialNumber" 
-                value={asset.serialNumber || ''} 
-                onChange={handleInputChange}
                 placeholder="e.g. SN12345678"
+                {...form.register('serialNumber')}
               />
+              {form.formState.errors.serialNumber && (
+                <p className="text-red-500 text-sm">{form.formState.errors.serialNumber.message}</p>
+              )}
             </div>
           </div>
           
@@ -342,10 +352,8 @@ const AssetForm = ({ mode }: AssetFormProps) => {
                   <Label htmlFor="operatingSystem">Operating System</Label>
                   <Input 
                     id="operatingSystem" 
-                    name="operatingSystem" 
-                    value={asset.operatingSystem || ''} 
-                    onChange={handleInputChange}
                     placeholder="e.g. Windows 10 Pro"
+                    {...form.register('operatingSystem')}
                   />
                 </div>
 
@@ -353,10 +361,8 @@ const AssetForm = ({ mode }: AssetFormProps) => {
                   <Label htmlFor="teamviewerId">Teamviewer ID</Label>
                   <Input 
                     id="teamviewerId" 
-                    name="teamviewerId" 
-                    value={asset.teamviewerId || ''} 
-                    onChange={handleInputChange}
                     placeholder="e.g. 123 456 789"
+                    {...form.register('teamviewerId')}
                   />
                 </div>
               </div>
@@ -366,10 +372,8 @@ const AssetForm = ({ mode }: AssetFormProps) => {
                   <Label htmlFor="rental">Rental</Label>
                   <Input 
                     id="rental" 
-                    name="rental" 
-                    value={asset.rental || ''} 
-                    onChange={handleInputChange}
                     placeholder="e.g. Monthly rental"
+                    {...form.register('rental')}
                   />
                 </div>
 
@@ -377,10 +381,8 @@ const AssetForm = ({ mode }: AssetFormProps) => {
                   <Label htmlFor="deliveryNote">Delivery Note</Label>
                   <Input 
                     id="deliveryNote" 
-                    name="deliveryNote" 
-                    value={asset.deliveryNote || ''} 
-                    onChange={handleInputChange}
                     placeholder="e.g. DN-12345"
+                    {...form.register('deliveryNote')}
                   />
                 </div>
               </div>
@@ -394,10 +396,8 @@ const AssetForm = ({ mode }: AssetFormProps) => {
                   <Label htmlFor="phoneNumber">Phone Number</Label>
                   <Input 
                     id="phoneNumber" 
-                    name="phoneNumber" 
-                    value={asset.phoneNumber || ''} 
-                    onChange={handleInputChange}
                     placeholder="e.g. +34 612345678"
+                    {...form.register('phoneNumber')}
                   />
                 </div>
 
@@ -405,10 +405,8 @@ const AssetForm = ({ mode }: AssetFormProps) => {
                   <Label htmlFor="pin">PIN</Label>
                   <Input 
                     id="pin" 
-                    name="pin" 
-                    value={asset.pin || ''} 
-                    onChange={handleInputChange}
                     placeholder="e.g. 1234"
+                    {...form.register('pin')}
                   />
                 </div>
               </div>
@@ -418,10 +416,8 @@ const AssetForm = ({ mode }: AssetFormProps) => {
                   <Label htmlFor="puk">PUK</Label>
                   <Input 
                     id="puk" 
-                    name="puk" 
-                    value={asset.puk || ''} 
-                    onChange={handleInputChange}
                     placeholder="e.g. 12345678"
+                    {...form.register('puk')}
                   />
                 </div>
 
@@ -429,10 +425,8 @@ const AssetForm = ({ mode }: AssetFormProps) => {
                   <Label htmlFor="imei1">IMEI 1</Label>
                   <Input 
                     id="imei1" 
-                    name="imei1" 
-                    value={asset.imei1 || ''} 
-                    onChange={handleInputChange}
                     placeholder="e.g. 123456789012345"
+                    {...form.register('imei1')}
                   />
                 </div>
               </div>
@@ -442,10 +436,8 @@ const AssetForm = ({ mode }: AssetFormProps) => {
                   <Label htmlFor="imei2">IMEI 2</Label>
                   <Input 
                     id="imei2" 
-                    name="imei2" 
-                    value={asset.imei2 || ''} 
-                    onChange={handleInputChange}
                     placeholder="e.g. 123456789012345"
+                    {...form.register('imei2')}
                   />
                 </div>
               </div>
@@ -457,67 +449,75 @@ const AssetForm = ({ mode }: AssetFormProps) => {
               <Label htmlFor="purchaseDate">Purchase Date</Label>
               <Input 
                 id="purchaseDate" 
-                name="purchaseDate" 
                 type="date" 
-                value={asset.purchaseDate || ''} 
-                onChange={handleInputChange}
+                {...form.register('purchaseDate')}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="status">Status*</Label>
-              <Select 
-                name="status" 
-                value={asset.status} 
-                onValueChange={(value) => handleSelectChange('status', value as AssetStatus)}
-              >
-                <SelectTrigger id="status">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {assetStatuses.map((status) => (
-                    <SelectItem key={status.value} value={status.value}>
-                      {status.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                name="status"
+                control={form.control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={(v) => field.onChange(v as AssetStatus)}>
+                    <SelectTrigger id="status">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {assetStatuses.map((status) => (
+                        <SelectItem key={status.value} value={status.value}>
+                          {status.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {form.formState.errors.status && (
+                <p className="text-red-500 text-sm">{form.formState.errors.status.message}</p>
+              )}
             </div>
           </div>
 
-          {/* ¡NUEVO CAMPO DE UBICACIÓN! */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <Label htmlFor="location">Ubicación*</Label>
-              <Select
+              <Controller
                 name="location"
-                value={asset.location || 'spain'} // Asegura un valor por defecto
-                onValueChange={(value) => handleSelectChange('location', value)}
-              >
-                <SelectTrigger id="location">
-                  <SelectValue placeholder="Selecciona una ubicación" />
-                </SelectTrigger>
-                <SelectContent>
-                  {assetLocations.map((location) => (
-                    <SelectItem key={location.value} value={location.value}>
-                      {location.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                control={form.control}
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="location">
+                      <SelectValue placeholder="Selecciona una ubicación" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {assetLocations.map((location) => (
+                        <SelectItem key={location.value} value={location.value}>
+                          {location.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {form.formState.errors.location && (
+                <p className="text-red-500 text-sm">{form.formState.errors.location.message}</p>
+              )}
             </div>
           </div>
 
-          <div className={asset.status === 'assigned' ? "block" : "hidden"}>
+          <div className={assetStatus === 'assigned' ? "block" : "hidden"}>
             <div className="space-y-2">
               <Label htmlFor="assignedTo">Assigned To</Label>
               <Input 
                 id="assignedTo" 
-                name="assignedTo" 
-                value={asset.assignedTo || ''} 
-                onChange={handleInputChange}
                 placeholder="e.g. John Doe"
+                {...form.register('assignedTo')}
               />
+              {form.formState.errors.assignedTo && (
+                <p className="text-red-500 text-sm">{form.formState.errors.assignedTo.message}</p>
+              )}
             </div>
           </div>
 
@@ -525,11 +525,9 @@ const AssetForm = ({ mode }: AssetFormProps) => {
             <Label htmlFor="notes">Notes</Label>
             <Textarea 
               id="notes" 
-              name="notes" 
-              value={asset.notes || ''} 
-              onChange={handleInputChange}
               placeholder="Additional information about this asset"
               rows={3}
+              {...form.register('notes')}
             />
           </div>
         </CardContent>
@@ -543,7 +541,7 @@ const AssetForm = ({ mode }: AssetFormProps) => {
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={submitting}>
+          <Button type="submit" disabled={submitting || !canWriteAssets}>
             {submitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
